@@ -421,19 +421,35 @@ fn main() {
         }
 
         possibilities.retain(|w| knowledge.matches(*w));
-        let words_string = &possibilities
-            .iter()
-            .map(|w| knowledge.format_remaining(*w))
-            .join(" ");
+        match possibilities.len() {
+            0 => println!(
+                "           {}",
+                str_with_fg(
+                    "NOTE! There are no words remaining! Something went wrong!",
+                    Color::Magenta
+                )
+            ),
+            1 => println!(
+                "           1 word remains: {}",
+                knowledge.format_remaining(possibilities[0])
+            ),
+            _ => {
+                let words_string = &possibilities
+                    .iter()
+                    .map(|w| knowledge.format_remaining(*w))
+                    .join(" ");
 
-        let label = format!("           {} words remain: ", possibilities.len());
-        let indent = " ".repeat(label.len());
-        let options = textwrap::Options::with_termwidth()
-            .initial_indent(&label)
-            .subsequent_indent(&indent);
-        for line in textwrap::wrap(words_string, options) {
-            println!("{line}");
+                let label = format!("           {} words remain: ", possibilities.len());
+                let indent = " ".repeat(label.len());
+                let options = textwrap::Options::with_termwidth()
+                    .initial_indent(&label)
+                    .subsequent_indent(&indent);
+                for line in textwrap::wrap(words_string, options) {
+                    println!("{line}");
+                }
+            }
         }
+
         println!();
     }
     println!("   {}   Solution", letters_with_bg(&answer, Color::Green));
