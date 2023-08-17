@@ -5,6 +5,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     io::Write,
     iter::zip,
+    process::ExitCode,
 };
 
 // Stolen from unstable
@@ -26,7 +27,8 @@ type Word = [Letter; WORD_LENGTH];
 static ANSWERS: [Letter; 13890] = *std::include_bytes!("WORDLE-ANSWERS.txt");
 
 fn make_word(input: &str) -> Option<Word> {
-    let bytes = input.as_bytes();
+    let upper = input.to_ascii_uppercase();
+    let bytes = upper.as_bytes();
     let valid = bytes.len() == 5 && bytes.iter().all(Letter::is_ascii_uppercase);
     if valid {
         bytes.try_into().ok()
@@ -341,15 +343,15 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
             continue;
         }
 
-        input = input.trim().to_ascii_uppercase();
+        let input = input.trim();
 
         if input.is_empty() {
             return None;
         }
 
-        let word = make_word(&input);
+        let word = make_word(input);
         if word.is_none() {
-            println!("Valid guesses must be a single word of five A-Z letters!");
+            println!("{input} is not a single word of five A-Z letters!");
             continue;
         }
 
@@ -357,7 +359,7 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
     }
 }
 
-fn main() {
+fn main() -> ExitCode {
     const PROMPTS: [&str; 7] = [
         "  First guess: ",
         " Second guess: ",
@@ -368,18 +370,29 @@ fn main() {
         "       Answer: ",
     ];
 
-    let mut words: Vec<Word> = Vec::new();
+    let args: Vec<String> = std::env::args().skip(1).collect();
 
-    for prompt in PROMPTS {
-        if let Some(word) = prompt_for_word(prompt) {
-            words.push(word);
-        } else {
-            break;
+    let mut words: Vec<Word> = Vec::new();
+    if args.is_empty() {
+        for prompt in PROMPTS {
+            if let Some(word) = prompt_for_word(prompt) {
+                words.push(word);
+            } else {
+                break;
+            }
+        }
+    } else {
+        for arg in args {
+            if let Some(word) = make_word(&arg) {
+                words.push(word);
+            } else {
+                println!("{arg} is not a single word of five A-Z letters!");
+                return ExitCode::from(1);
+            }
         }
     }
-
     if words.is_empty() {
-        return;
+        return ExitCode::SUCCESS;
     }
 
     let answer = words.pop().unwrap();
@@ -453,4 +466,5 @@ fn main() {
         println!();
     }
     println!("   {}   Solution", letters_with_bg(&answer, Color::Green));
+    ExitCode::SUCCESS
 }
