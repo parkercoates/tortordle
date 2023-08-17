@@ -1,12 +1,6 @@
 use colored::{Color, Colorize};
 use itertools::Itertools;
-use std::{
-    cmp::max,
-    collections::{BTreeMap, BTreeSet},
-    io::Write,
-    iter::zip,
-    process::ExitCode,
-};
+use std::{cmp::Ordering, collections::BTreeSet, io::Write, iter::zip, process::ExitCode};
 
 // Stolen from unstable
 #[inline]
@@ -150,7 +144,7 @@ impl LetterKnowledge {
             Self::Is(letter) => letter_with_fg(*letter, Color::Green),
             Self::IsNot(set) => {
                 letters_with_fg(
-                    yellows.map.keys().filter(|l| !set.contains(l)),
+                    yellows.letters().dedup().filter(|l| !set.contains(l)),
                     Color::Yellow,
                 ) + &letters_with_fg(set, Color::Red)
             }
@@ -167,55 +161,120 @@ impl LetterKnowledge {
 
 #[derive(Clone)]
 struct LetterHistogram {
-    map: BTreeMap<Letter, usize>,
+    slots: [Letter; WORD_LENGTH],
 }
 
 impl LetterHistogram {
+    // This value is specifically chosen to be larger than b'Z'.
+    const NO_DATA: Letter = b'_';
+
     const fn new() -> Self {
         Self {
-            map: BTreeMap::new(),
+            slots: [Self::NO_DATA; WORD_LENGTH],
         }
     }
 
-    fn from_word(word: &[Letter]) -> Self {
+    fn from_word(word: Word) -> Self {
         let mut histogram = Self::new();
-        for &letter in word {
+        for letter in word {
             histogram.add_letter(letter);
         }
         histogram
     }
 
-    fn add_letter(&mut self, letter: Letter) {
-        *self.map.entry(letter).or_default() += 1;
+    fn add_letter(&mut self, mut letter: Letter) {
+        for i in 0..WORD_LENGTH {
+            if letter < self.slots[i] {
+                std::mem::swap(&mut self.slots[i], &mut letter);
+            }
+        }
     }
 
     fn remove_letter(&mut self, letter: Letter) {
-        if let Some(count) = self.map.get_mut(&letter) {
-            *count -= 1;
-            if *count == 0 {
-                self.map.remove(&letter);
+        for i in 0..WORD_LENGTH {
+            if self.slots[i] == letter {
+                self.slots[i] = Self::NO_DATA;
+                self.slots.sort_unstable();
+                break;
+            }
+        }
+    }
+
+    fn letters(&self) -> impl Iterator<Item = &Letter> {
+        self.slots.iter().take_while(|&l| *l != Self::NO_DATA)
+    }
+
+    fn contains(&self, letter: Letter) -> bool {
+        self.slots.contains(&letter)
+    }
+
+    fn contains_other(&self, subset: &Self) -> bool {
+        let mut i: usize = 0;
+        let mut j: usize = 0;
+        loop {
+            match self.slots[i].cmp(&subset.slots[j]) {
+                Ordering::Equal => {
+                    i += 1;
+                    j += 1;
+                }
+                Ordering::Greater => {
+                    return false;
+                }
+                Ordering::Less => {
+                    i += 1;
+                }
+            }
+
+            if j == WORD_LENGTH || subset.slots[j] == Self::NO_DATA {
+                return true;
+            } else if i == WORD_LENGTH || self.slots[i] == Self::NO_DATA {
+                return false;
             }
         }
     }
 
     fn merge_via_max(&mut self, other: &Self) {
-        for (letter, count) in &other.map {
-            self.map
-                .entry(*letter)
-                .and_modify(|x| *x = max(*x, *count))
-                .or_insert(*count);
+        let mut new = [b'_'; WORD_LENGTH];
+        let mut i = 0;
+        let mut j = 0;
+        let mut k = 0;
+        while k < WORD_LENGTH {
+            match self.slots[i].cmp(&other.slots[j]) {
+                Ordering::Equal => {
+                    new[k] = self.slots[i];
+                    i += 1;
+                    j += 1;
+                    k += 1;
+                }
+                Ordering::Greater => {
+                    new[k] = other.slots[j];
+                    j += 1;
+                    k += 1;
+                }
+                Ordering::Less => {
+                    new[k] = self.slots[i];
+                    i += 1;
+                    k += 1;
+                }
+            }
+
+            if i == WORD_LENGTH {
+                while j < WORD_LENGTH && k < WORD_LENGTH {
+                    new[k] = other.slots[j];
+                    j += 1;
+                    k += 1;
+                }
+                break;
+            } else if j == WORD_LENGTH {
+                while i < WORD_LENGTH && k < WORD_LENGTH {
+                    new[k] = self.slots[i];
+                    i += 1;
+                    k += 1;
+                }
+                break;
+            }
         }
-    }
-
-    fn contains(&self, letter: Letter) -> bool {
-        self.map.contains_key(&letter)
-    }
-
-    fn contains_other(&self, subset: &Self) -> bool {
-        subset.map.iter().all(|(letter, needed_count)| {
-            let count = self.map.get(letter).unwrap_or(&0);
-            needed_count <= count
-        })
+        self.slots = new;
     }
 }
 
@@ -285,18 +344,21 @@ impl WordKnowledge {
             }
         }
 
-        for (letter, count) in self.yellows.map.clone() {
-            let match_indexes: Vec<usize> = self
+        for (count, &letter) in self.yellows.clone().letters().dedup_with_count() {
+            let matches = self
                 .slots
                 .iter()
-                .enumerate()
-                .filter_map(|(i, slot)| slot.matches(letter).then_some(i))
-                .collect();
-            if match_indexes.len() == count {
-                for i in match_indexes {
-                    self.slots[i] = LetterKnowledge::Is(letter);
+                .filter(|slot| slot.matches(letter))
+                .count();
+            if matches == count {
+                for slot in &mut self.slots {
+                    if let LetterKnowledge::IsNot(_) = slot {
+                        if slot.matches(letter) {
+                            *slot = LetterKnowledge::Is(letter);
+                            self.yellows.remove_letter(letter);
+                        }
+                    }
                 }
-                self.yellows.remove_letter(letter);
             }
         }
     }
