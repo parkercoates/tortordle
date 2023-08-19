@@ -363,10 +363,14 @@ impl WordKnowledge {
         }
     }
 
-    fn matches(&self, word: Word) -> bool {
-        let slots_match = zip(&self.slots, &word).all(|(s, l)| s.matches(*l));
-        let needs_match = LetterHistogram::from_word(&word).contains_other(&self.histogram);
+    fn matches(&self, possibility: &PossibleAnswer) -> bool {
+        let slots_match = zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l));
+        let needs_match = possibility.histogram.contains_other(&self.histogram);
         slots_match && needs_match
+    }
+
+    fn matches_word(&self, word: Word) -> bool {
+        self.matches(&PossibleAnswer::from_word(word))
     }
 
     fn formatted(&self) -> String {
@@ -379,8 +383,8 @@ impl WordKnowledge {
         )
     }
 
-    fn format_remaining(&self, word: Word) -> String {
-        std::iter::zip(word, &self.slots)
+    fn format_possibility(&self, possibility: &PossibleAnswer) -> String {
+        std::iter::zip(possibility.word, &self.slots)
             .map(|(letter, slot)| match slot {
                 LetterKnowledge::Is(known_letter) if letter == *known_letter => {
                     letter_with_fg(letter, Color::Green)
@@ -392,6 +396,19 @@ impl WordKnowledge {
     }
 }
 
+struct PossibleAnswer {
+    word: Word,
+    histogram: LetterHistogram,
+}
+
+impl PossibleAnswer {
+    fn from_word(word: Word) -> Self {
+        Self {
+            word,
+            histogram: LetterHistogram::from_word(word),
+        }
+    }
+}
 fn prompt_for_word(prompt: &str) -> Option<Word> {
     let mut input = String::new();
     loop {
@@ -459,15 +476,18 @@ fn main() -> ExitCode {
 
     let answer = words.pop().unwrap();
 
-    let mut possibilities: Vec<Word> = ANSWERS
+    let mut possibilities: Vec<PossibleAnswer> = ANSWERS
         .chunks_exact(6)
-        .map(|w| *first_chunk::<WORD_LENGTH>(w).unwrap())
+        .map(|w| {
+            let word = first_chunk::<WORD_LENGTH>(w).unwrap();
+            PossibleAnswer::from_word(*word)
+        })
         .collect();
 
     println!("\nGuess Analysis:");
     let mut knowledge = WordKnowledge::new();
     for word in &words {
-        let was_mistake = !knowledge.matches(*word);
+        let was_mistake = !knowledge.matches_word(*word);
 
         let guess = color_guess(*word, answer);
         knowledge.add_guess(&guess);
@@ -485,7 +505,7 @@ fn main() -> ExitCode {
                     Color::Magenta
                 )
             );
-        } else if !possibilities.contains(word) {
+        } else if !possibilities.iter().any(|a| a.word == *word) {
             println!(
                 "           {}",
                 str_with_fg(
@@ -495,7 +515,7 @@ fn main() -> ExitCode {
             );
         }
 
-        possibilities.retain(|w| knowledge.matches(*w));
+        possibilities.retain(|p| knowledge.matches(p));
         match possibilities.len() {
             0 => println!(
                 "           {}",
@@ -506,12 +526,12 @@ fn main() -> ExitCode {
             ),
             1 => println!(
                 "           1 word remains: {}",
-                knowledge.format_remaining(possibilities[0])
+                knowledge.format_possibility(&possibilities[0])
             ),
             _ => {
                 let words_string = &possibilities
                     .iter()
-                    .map(|w| knowledge.format_remaining(*w))
+                    .map(|a| knowledge.format_possibility(a))
                     .join(" ");
 
                 let label = format!("           {} words remain: ", possibilities.len());
