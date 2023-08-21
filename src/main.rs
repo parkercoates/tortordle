@@ -1,6 +1,6 @@
 use colored::{Color, Colorize};
 use itertools::Itertools;
-use std::{cmp::Ordering, collections::BTreeSet, io::Write, iter::zip, process::ExitCode};
+use std::{cmp::Ordering, io::Write, iter::zip, process::ExitCode};
 
 // Stolen from unstable
 #[inline]
@@ -132,10 +132,36 @@ fn color_guess(guess: Word, answer: Word) -> ColoredWord {
     ColoredWord { slots }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy)]
+struct LetterSet {
+    bits: u32,
+}
+
+impl LetterSet {
+    const fn new() -> Self {
+        Self { bits: 0 }
+    }
+
+    fn insert(&mut self, letter: Letter) {
+        self.bits |= 1 << (letter - b'A');
+    }
+
+    const fn contains(&self, letter: Letter) -> bool {
+        self.bits & (1 << (letter - b'A')) != 0
+    }
+
+    fn letters(&self) -> Vec<Letter> {
+        (b'A'..=b'Z')
+            .into_iter()
+            .filter(|&l| self.contains(l))
+            .collect()
+    }
+}
+
+#[derive(Clone, Copy)]
 enum LetterKnowledge {
     Is(Letter),
-    IsNot(BTreeSet<Letter>),
+    IsNot(LetterSet),
 }
 
 impl LetterKnowledge {
@@ -144,9 +170,9 @@ impl LetterKnowledge {
             Self::Is(letter) => letter_with_fg(*letter, Color::Green),
             Self::IsNot(set) => {
                 letters_with_fg(
-                    yellows.letters().dedup().filter(|l| !set.contains(l)),
+                    yellows.letters().dedup().filter(|&l| !set.contains(*l)),
                     Color::Yellow,
-                ) + &letters_with_fg(set, Color::Red)
+                ) + &letters_with_fg(&set.letters(), Color::Red)
             }
         }
     }
@@ -154,7 +180,7 @@ impl LetterKnowledge {
     fn matches(&self, letter: Letter) -> bool {
         match self {
             Self::Is(known_letter) => letter == *known_letter,
-            Self::IsNot(set) => !set.contains(&letter),
+            Self::IsNot(set) => !set.contains(letter),
         }
     }
 }
@@ -287,13 +313,7 @@ struct WordKnowledge {
 impl WordKnowledge {
     const fn new() -> Self {
         Self {
-            slots: [
-                LetterKnowledge::IsNot(BTreeSet::new()),
-                LetterKnowledge::IsNot(BTreeSet::new()),
-                LetterKnowledge::IsNot(BTreeSet::new()),
-                LetterKnowledge::IsNot(BTreeSet::new()),
-                LetterKnowledge::IsNot(BTreeSet::new()),
-            ],
+            slots: [LetterKnowledge::IsNot(LetterSet::new()); 5],
             histogram: LetterHistogram::new(),
             yellows: LetterHistogram::new(),
         }
