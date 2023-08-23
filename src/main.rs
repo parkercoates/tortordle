@@ -112,21 +112,22 @@ impl ColoredWord {
 }
 
 fn color_guess(guess: Word, answer: Word) -> ColoredWord {
-    fn letter_count(word: &[Letter], letter: Letter) -> usize {
-        word.iter().filter(|&c| *c == letter).count()
-    }
-
     let mut slots = [(b' ', LetterState::Black); WORD_LENGTH];
-    for (i, letter, answer_letter, slot) in itertools::izip!(0.., guess, answer, &mut slots) {
-        slot.0 = letter;
-        if letter == answer_letter {
-            slot.1 = LetterState::Green;
+    let mut yellows = LetterHistogram::new();
+    for (guess_letter, answer_letter, (letter, state)) in
+        itertools::izip!(guess, answer, &mut slots)
+    {
+        *letter = guess_letter;
+        if guess_letter == answer_letter {
+            *state = LetterState::Green;
         } else {
-            let count_in_answer = letter_count(&answer, letter);
-            let count_so_far_in_guess = letter_count(&guess[..i], letter);
-            if count_so_far_in_guess < count_in_answer {
-                slot.1 = LetterState::Yellow;
-            }
+            yellows.add_letter(answer_letter);
+        }
+    }
+    for (letter, state) in &mut slots {
+        if *state == LetterState::Black && yellows.contains(*letter) {
+            *state = LetterState::Yellow;
+            yellows.remove_letter(*letter);
         }
     }
     ColoredWord { slots }
