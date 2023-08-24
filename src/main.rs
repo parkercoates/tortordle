@@ -1,4 +1,8 @@
-use colored::{Color, Colorize};
+pub mod word;
+
+use word::*;
+
+use colored::Color;
 use itertools::Itertools;
 use partial_sort::PartialSort;
 use rayon::prelude::*;
@@ -7,60 +11,6 @@ use std::{cmp::Ordering, io::Write, iter::zip, process::ExitCode};
 const fn slice_as_array_ref<T, const N: usize>(slice: &[T]) -> &[T; N] {
     assert!(N <= slice.len());
     unsafe { &*slice.as_ptr().cast::<[T; N]>() }
-}
-
-type Letter = u8;
-const WORD_LENGTH: usize = 5;
-type Word = [Letter; WORD_LENGTH];
-
-static ANSWERS: [Letter; 13890] = *std::include_bytes!("WORDLE-ANSWERS.txt");
-
-fn make_word(input: &str) -> Option<Word> {
-    let upper = input.to_ascii_uppercase();
-    let bytes = upper.as_bytes();
-    let valid = bytes.len() == 5 && bytes.iter().all(Letter::is_ascii_uppercase);
-    if valid {
-        bytes.try_into().ok()
-    } else {
-        None
-    }
-}
-
-fn letter_to_string(letter: Letter) -> String {
-    (letter as char).to_string()
-}
-
-fn letters_to_string<'a, I>(letters: I) -> String
-where
-    I: IntoIterator<Item = &'a u8>,
-{
-    letters.into_iter().map(|l| *l as char).collect()
-}
-
-fn letters_with_fg<'a, I>(letters: I, color: Color) -> String
-where
-    I: IntoIterator<Item = &'a u8>,
-{
-    letters_to_string(letters).color(color).to_string()
-}
-
-fn letters_with_bg<'a, I>(letters: I, color: Color) -> String
-where
-    I: IntoIterator<Item = &'a u8>,
-{
-    letters_to_string(letters).on_color(color).to_string()
-}
-
-fn letter_with_fg(letter: Letter, color: Color) -> String {
-    letters_with_fg(std::slice::from_ref(&letter), color)
-}
-
-fn letter_with_bg(letter: Letter, color: Color) -> String {
-    letters_with_bg(std::slice::from_ref(&letter), color)
-}
-
-fn str_with_fg(text: &str, color: Color) -> String {
-    String::from(text).color(color).to_string()
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -586,6 +536,8 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
         return word;
     }
 }
+
+static ANSWERS: [Letter; 13890] = *std::include_bytes!("WORDLE-ANSWERS.txt");
 
 fn main() -> ExitCode {
     const PROMPTS: [&str; 7] = [
