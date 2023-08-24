@@ -107,7 +107,7 @@ enum LetterKnowledge {
 }
 
 impl LetterKnowledge {
-    fn formatted(self, yellows: &LetterHistogram) -> String {
+    fn formatted(self, yellows: LetterHistogram) -> String {
         match self {
             Self::Is(letter) => letter_with_fg(letter, Color::Green),
             Self::IsNot(set) => {
@@ -236,9 +236,9 @@ impl WordKnowledge {
             }
         }
 
-        self.histogram.merge_via_max(&new_histogram);
+        self.histogram.merge_via_max(new_histogram);
 
-        self.yellows = self.histogram.clone();
+        self.yellows = self.histogram;
         for slot in &mut self.slots {
             if let LetterKnowledge::Is(letter) = slot {
                 self.yellows.remove_letter(*letter);
@@ -266,7 +266,7 @@ impl WordKnowledge {
 
     fn matches(&self, possibility: &PossibleAnswer) -> bool {
         let slots_match = zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l));
-        let needs_match = possibility.histogram.contains_other(&self.histogram);
+        let needs_match = possibility.histogram.contains_other(self.histogram);
         slots_match && needs_match
     }
 
@@ -279,7 +279,7 @@ impl WordKnowledge {
             "[{}]",
             self.slots
                 .iter()
-                .map(|slot| slot.formatted(&self.yellows))
+                .map(|slot| slot.formatted(self.yellows))
                 .join("|")
         )
     }

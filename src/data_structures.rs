@@ -25,7 +25,7 @@ impl LetterSet {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct LetterHistogram {
     slots: [Letter; WORD_LENGTH],
 }
@@ -70,11 +70,11 @@ impl LetterHistogram {
         self.slots.iter().take_while(|&l| *l != Self::NO_DATA)
     }
 
-    pub fn contains(&self, letter: Letter) -> bool {
+    pub fn contains(self, letter: Letter) -> bool {
         self.slots.contains(&letter)
     }
 
-    pub fn contains_other(&self, subset: &Self) -> bool {
+    pub fn contains_other(self, subset: Self) -> bool {
         let mut i: usize = 0;
         let mut j: usize = 0;
         loop {
@@ -99,7 +99,7 @@ impl LetterHistogram {
         }
     }
 
-    pub fn merge_via_max(&mut self, other: &Self) {
+    pub fn merge_via_max(&mut self, other: Self) {
         let mut new = [b'_'; WORD_LENGTH];
         let mut i = 0;
         let mut j = 0;
