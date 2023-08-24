@@ -4,16 +4,9 @@ use partial_sort::PartialSort;
 use rayon::prelude::*;
 use std::{cmp::Ordering, io::Write, iter::zip, process::ExitCode};
 
-// Stolen from unstable
-#[inline]
-pub const fn first_chunk<const N: usize>(slice: &[u8]) -> Option<&[u8; N]> {
-    if slice.len() < N {
-        None
-    } else {
-        // SAFETY: We explicitly check for the correct number of elements,
-        //   and do not let the reference outlive the slice.
-        Some(unsafe { &*slice.as_ptr().cast::<[u8; N]>() })
-    }
+const fn slice_as_array_ref<T, const N: usize>(slice: &[T]) -> &[T; N] {
+    assert!(N <= slice.len());
+    unsafe { &*slice.as_ptr().cast::<[T; N]>() }
 }
 
 type Letter = u8;
@@ -633,10 +626,11 @@ fn main() -> ExitCode {
     let answer = words.pop().unwrap();
 
     let mut possibilities: Vec<PossibleAnswer> = ANSWERS
-        .chunks_exact(6)
-        .map(|w| {
-            let word = first_chunk::<WORD_LENGTH>(w).unwrap();
-            PossibleAnswer::from_word(*word)
+        .chunks_exact(WORD_LENGTH + 1) // Five letters then a newline
+        .map(|chunk| {
+            let word: Word = *slice_as_array_ref(chunk);
+            assert!(word.iter().all(u8::is_ascii_uppercase));
+            PossibleAnswer::from_word(word)
         })
         .collect();
 
