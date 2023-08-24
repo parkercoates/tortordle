@@ -12,7 +12,7 @@ pub const fn first_chunk<const N: usize>(slice: &[u8]) -> Option<&[u8; N]> {
     } else {
         // SAFETY: We explicitly check for the correct number of elements,
         //   and do not let the reference outlive the slice.
-        Some(unsafe { &*(slice.as_ptr() as *const [u8; N]) })
+        Some(unsafe { &*slice.as_ptr().cast::<[u8; N]>() })
     }
 }
 
@@ -169,15 +169,12 @@ impl LetterSet {
         self.bits |= 1 << (letter - b'A');
     }
 
-    const fn contains(&self, letter: Letter) -> bool {
+    const fn contains(self, letter: Letter) -> bool {
         self.bits & (1 << (letter - b'A')) != 0
     }
 
-    fn letters(&self) -> Vec<Letter> {
-        (b'A'..=b'Z')
-            .into_iter()
-            .filter(|&l| self.contains(l))
-            .collect()
+    fn letters(self) -> Vec<Letter> {
+        (b'A'..=b'Z').filter(|&l| self.contains(l)).collect()
     }
 }
 
@@ -188,9 +185,9 @@ enum LetterKnowledge {
 }
 
 impl LetterKnowledge {
-    fn formatted(&self, yellows: &LetterHistogram) -> String {
+    fn formatted(self, yellows: &LetterHistogram) -> String {
         match self {
-            Self::Is(letter) => letter_with_fg(*letter, Color::Green),
+            Self::Is(letter) => letter_with_fg(letter, Color::Green),
             Self::IsNot(set) => {
                 letters_with_fg(
                     yellows.letters().dedup().filter(|&l| !set.contains(*l)),
@@ -200,9 +197,9 @@ impl LetterKnowledge {
         }
     }
 
-    fn matches(&self, letter: Letter) -> bool {
+    const fn matches(self, letter: Letter) -> bool {
         match self {
-            Self::Is(known_letter) => letter == *known_letter,
+            Self::Is(known_letter) => letter == known_letter,
             Self::IsNot(set) => !set.contains(letter),
         }
     }
