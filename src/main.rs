@@ -1,5 +1,7 @@
-pub mod word;
+mod data_structures;
+mod word;
 
+use data_structures::{LetterHistogram, LetterSet};
 use word::*;
 
 use colored::Color;
@@ -99,29 +101,6 @@ fn color_guess(guess: Word, answer: Word) -> ColoredWord {
 }
 
 #[derive(Clone, Copy)]
-struct LetterSet {
-    bits: u32,
-}
-
-impl LetterSet {
-    const fn new() -> Self {
-        Self { bits: 0 }
-    }
-
-    fn insert(&mut self, letter: Letter) {
-        self.bits |= 1 << (letter - b'A');
-    }
-
-    const fn contains(self, letter: Letter) -> bool {
-        self.bits & (1 << (letter - b'A')) != 0
-    }
-
-    fn letters(self) -> Vec<Letter> {
-        (b'A'..=b'Z').filter(|&l| self.contains(l)).collect()
-    }
-}
-
-#[derive(Clone, Copy)]
 enum LetterKnowledge {
     Is(Letter),
     IsNot(LetterSet),
@@ -148,125 +127,6 @@ impl LetterKnowledge {
     }
 }
 
-#[derive(Clone)]
-struct LetterHistogram {
-    slots: [Letter; WORD_LENGTH],
-}
-
-impl LetterHistogram {
-    // This value is specifically chosen to be larger than b'Z'.
-    const NO_DATA: Letter = b'_';
-
-    const fn new() -> Self {
-        Self {
-            slots: [Self::NO_DATA; WORD_LENGTH],
-        }
-    }
-
-    fn from_word(word: Word) -> Self {
-        let mut histogram = Self::new();
-        for letter in word {
-            histogram.add_letter(letter);
-        }
-        histogram
-    }
-
-    fn add_letter(&mut self, mut letter: Letter) {
-        for i in 0..WORD_LENGTH {
-            if letter < self.slots[i] {
-                std::mem::swap(&mut self.slots[i], &mut letter);
-            }
-        }
-    }
-
-    fn remove_letter(&mut self, letter: Letter) {
-        for i in 0..WORD_LENGTH {
-            if self.slots[i] == letter {
-                self.slots[i] = Self::NO_DATA;
-                self.slots.sort_unstable();
-                break;
-            }
-        }
-    }
-
-    fn letters(&self) -> impl Iterator<Item = &Letter> {
-        self.slots.iter().take_while(|&l| *l != Self::NO_DATA)
-    }
-
-    fn contains(&self, letter: Letter) -> bool {
-        self.slots.contains(&letter)
-    }
-
-    fn contains_other(&self, subset: &Self) -> bool {
-        let mut i: usize = 0;
-        let mut j: usize = 0;
-        loop {
-            match self.slots[i].cmp(&subset.slots[j]) {
-                Ordering::Equal => {
-                    i += 1;
-                    j += 1;
-                }
-                Ordering::Greater => {
-                    return false;
-                }
-                Ordering::Less => {
-                    i += 1;
-                }
-            }
-
-            if j == WORD_LENGTH || subset.slots[j] == Self::NO_DATA {
-                return true;
-            } else if i == WORD_LENGTH || self.slots[i] == Self::NO_DATA {
-                return false;
-            }
-        }
-    }
-
-    fn merge_via_max(&mut self, other: &Self) {
-        let mut new = [b'_'; WORD_LENGTH];
-        let mut i = 0;
-        let mut j = 0;
-        let mut k = 0;
-        while k < WORD_LENGTH {
-            match self.slots[i].cmp(&other.slots[j]) {
-                Ordering::Equal => {
-                    new[k] = self.slots[i];
-                    i += 1;
-                    j += 1;
-                    k += 1;
-                }
-                Ordering::Greater => {
-                    new[k] = other.slots[j];
-                    j += 1;
-                    k += 1;
-                }
-                Ordering::Less => {
-                    new[k] = self.slots[i];
-                    i += 1;
-                    k += 1;
-                }
-            }
-
-            if i == WORD_LENGTH {
-                while j < WORD_LENGTH && k < WORD_LENGTH {
-                    new[k] = other.slots[j];
-                    j += 1;
-                    k += 1;
-                }
-                break;
-            } else if j == WORD_LENGTH {
-                while i < WORD_LENGTH && k < WORD_LENGTH {
-                    new[k] = self.slots[i];
-                    i += 1;
-                    k += 1;
-                }
-                break;
-            }
-        }
-        self.slots = new;
-    }
-}
-
 struct WordKnowledge {
     slots: [LetterKnowledge; WORD_LENGTH],
     histogram: LetterHistogram,
@@ -285,6 +145,58 @@ impl WordKnowledge {
     fn from_guess(guess: &ColoredWord) -> Self {
         let mut result = Self::new();
         result.add_guess(guess);
+        //
+        // for (i, (letter, color)) in guess.iter().enumerate() {
+        //     match color {
+        //         LetterState::Black => {
+        //             // If we've already seen a particular letter in yellow in this
+        //             // guess, seeing it in black only tells us that that this
+        //             // specific slot can't be that letter.
+        //             if result.yellows.contains(*letter) {
+        //                 if let LetterKnowledge::IsNot(set) = &mut result.slots[i] {
+        //                     set.insert(*letter);
+        //                 }
+        //             // Otherwise, we know that letter occurs in no slot.
+        //             } else {
+        //                 for slot in &mut result.slots {
+        //                     if let LetterKnowledge::IsNot(set) = slot {
+        //                         set.insert(*letter);
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         LetterState::Yellow => {
+        //             result.histogram.add_letter(*letter);
+        //             result.yellows.add_letter(*letter);
+        //             if let LetterKnowledge::IsNot(set) = &mut result.slots[i] {
+        //                 set.insert(*letter);
+        //             }
+        //         }
+        //         LetterState::Green => {
+        //             result.histogram.add_letter(*letter);
+        //             result.slots[i] = LetterKnowledge::Is(*letter);
+        //         }
+        //     }
+        // }
+
+        // for (count, &letter) in result.yellows.clone().letters().dedup_with_count() {
+        //     let matches = result
+        //         .slots
+        //         .iter()
+        //         .filter(|slot| slot.matches(letter))
+        //         .count();
+        //     if matches == count {
+        //         for slot in &mut result.slots {
+        //             if let LetterKnowledge::IsNot(_) = slot {
+        //                 if slot.matches(letter) {
+        //                     *slot = LetterKnowledge::Is(letter);
+        //                     result.yellows.remove_letter(letter);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        //
         result
     }
 
@@ -585,6 +497,16 @@ fn main() -> ExitCode {
             PossibleAnswer::from_word(word)
         })
         .collect();
+
+    // println!("Starting words that lead to the fewest remaining words on average:");
+    // for (count, word) in find_best_of_possibilities(&possibilities, 20) {
+    //     println!(
+    //         "{}: {:.2}",
+    //         letters_to_string(&word),
+    //         count as f32 / possibilities.len() as f32
+    //     );
+    // }
+    // return ExitCode::SUCCESS;
 
     println!("\nGuess Analysis:");
     let mut knowledge = WordKnowledge::new();
