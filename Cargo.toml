@@ -8,4 +8,6 @@ edition = "2021"
 [dependencies]
 colored = "2.0"
 itertools = "0.11"
+partial_sort = "0.2"
+rayon = "1.7"
 textwrap = { version = "0.16", features = ["terminal_size"] }

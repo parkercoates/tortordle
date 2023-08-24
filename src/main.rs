@@ -1,5 +1,7 @@
 use colored::{Color, Colorize};
 use itertools::Itertools;
+use partial_sort::PartialSort;
+use rayon::prelude::*;
 use std::{cmp::Ordering, io::Write, iter::zip, process::ExitCode};
 
 // Stolen from unstable
@@ -68,7 +70,7 @@ fn str_with_fg(text: &str, color: Color) -> String {
     String::from(text).color(color).to_string()
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum LetterState {
     Black,
     Yellow,
@@ -108,6 +110,26 @@ impl ColoredWord {
         self.iter()
             .map(|(letter, state)| letter_with_bg(*letter, state.color()))
             .join("")
+    }
+
+    fn green_count(&self) -> usize {
+        self.iter()
+            .filter(|(_, state)| *state == LetterState::Green)
+            .count()
+    }
+
+    fn weighted_green_yellow_count(&self) -> f32 {
+        self.iter()
+            .map(|(_, state)| match state {
+                // This dumb weighting does not attempt to assign relative
+                // values to greens and yellows. It just ensures that if the
+                // number of greens+yellows is the same for two guesses, the
+                // guess with more greens will score higher.
+                LetterState::Green => 1.10,
+                LetterState::Yellow => 0.90,
+                LetterState::Black => 0.0,
+            })
+            .sum()
     }
 }
 
@@ -320,6 +342,12 @@ impl WordKnowledge {
         }
     }
 
+    fn from_guess(guess: &ColoredWord) -> Self {
+        let mut result = Self::new();
+        result.add_guess(guess);
+        result
+    }
+
     fn add_guess(&mut self, guess: &ColoredWord) {
         let mut new_histogram = LetterHistogram::new();
         let mut new_yellows = LetterHistogram::new();
@@ -430,6 +458,116 @@ impl PossibleAnswer {
         }
     }
 }
+
+#[derive(PartialEq, PartialOrd)]
+struct ScoredWord {
+    word: Word,
+    score: f32,
+}
+
+impl ScoredWord {
+    fn cmp_ascending_score(lhs: &Self, rhs: &Self) -> Ordering {
+        lhs.score
+            .total_cmp(&rhs.score)
+            .then(lhs.word.cmp(&rhs.word))
+    }
+
+    fn cmp_descending_score(lhs: &Self, rhs: &Self) -> Ordering {
+        lhs.score
+            .total_cmp(&rhs.score)
+            .reverse()
+            .then(lhs.word.cmp(&rhs.word))
+    }
+}
+
+fn average_remaining_possibilites(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
+    let mut count = 0usize;
+    for answer in possibilities {
+        if answer.word != guess {
+            let knowledge = WordKnowledge::from_guess(&color_guess(guess, answer.word));
+            for possibility in possibilities {
+                if knowledge.matches(possibility) {
+                    count += 1;
+                }
+            }
+        }
+    }
+    count as f32 / possibilities.len() as f32
+}
+
+fn best_guesses_by_remaining_possibilities(
+    possibilities: &[PossibleAnswer],
+    count: usize,
+) -> Vec<ScoredWord> {
+    let count = std::cmp::min(count, possibilities.len());
+    let mut rankings = Vec::<ScoredWord>::with_capacity(possibilities.len());
+
+    possibilities
+        .par_iter()
+        .map(|guess| ScoredWord {
+            word: guess.word,
+            score: average_remaining_possibilites(guess.word, possibilities),
+        })
+        .collect_into_vec(&mut rankings);
+
+    rankings.partial_sort(count, ScoredWord::cmp_ascending_score);
+    rankings.truncate(count);
+    rankings
+}
+
+fn average_green_count(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
+    let count: usize = possibilities
+        .iter()
+        .map(|possibility| color_guess(guess, possibility.word).green_count())
+        .sum();
+    count as f32 / possibilities.len() as f32
+}
+
+fn best_guesses_by_green_count(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredWord> {
+    let count = std::cmp::min(count, possibilities.len());
+    let mut rankings = Vec::<ScoredWord>::with_capacity(possibilities.len());
+
+    possibilities
+        .par_iter()
+        .map(|guess| ScoredWord {
+            word: guess.word,
+            score: average_green_count(guess.word, possibilities),
+        })
+        .collect_into_vec(&mut rankings);
+
+    rankings.partial_sort(count, ScoredWord::cmp_descending_score);
+    rankings.truncate(count);
+    rankings
+}
+
+fn average_weighted_green_yellow_count(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
+    let count: f32 = possibilities
+        .iter()
+        .map(|possibility| color_guess(guess, possibility.word).weighted_green_yellow_count())
+        .sum();
+    count / possibilities.len() as f32
+}
+
+fn best_guesses_by_weighted_green_yellow_count(
+    possibilities: &[PossibleAnswer],
+    count: usize,
+) -> Vec<ScoredWord> {
+    let count = std::cmp::min(count, possibilities.len());
+    let mut rankings = Vec::<ScoredWord>::with_capacity(possibilities.len());
+
+    possibilities
+        .par_iter()
+        .map(|guess| ScoredWord {
+            word: guess.word,
+            score: average_weighted_green_yellow_count(guess.word, possibilities),
+        })
+        .collect_into_vec(&mut rankings);
+
+    rankings.partial_sort(count, ScoredWord::cmp_descending_score);
+    rankings.truncate(count);
+    rankings
+}
+
 fn prompt_for_word(prompt: &str) -> Option<Word> {
     let mut input = String::new();
     loop {
@@ -564,6 +702,36 @@ fn main() -> ExitCode {
                     println!("{line}");
                 }
             }
+        }
+
+        if possibilities.len() > 2 {
+            const SUGGESTIONS_TO_SHOW: usize = 4;
+            const COLON_COLUMN: usize = 40;
+            println!("\n           Suggested Guesses:");
+
+            print!("{:>COLON_COLUMN$}: ", "Highest green count");
+            for ScoredWord { score, word } in
+                best_guesses_by_green_count(&possibilities, SUGGESTIONS_TO_SHOW)
+            {
+                print!("{}={score:.2}  ", letters_to_string(&word));
+            }
+            println!();
+
+            print!("{:>COLON_COLUMN$}: ", "Highest green/yellow count");
+            for ScoredWord { score, word } in
+                best_guesses_by_weighted_green_yellow_count(&possibilities, SUGGESTIONS_TO_SHOW)
+            {
+                print!("{}={score:.2}  ", letters_to_string(&word));
+            }
+            println!();
+
+            print!("{:>COLON_COLUMN$}: ", "Fewest remaining words");
+            for ScoredWord { score, word } in
+                best_guesses_by_remaining_possibilities(&possibilities, SUGGESTIONS_TO_SHOW)
+            {
+                print!("{}={score:.2}  ", letters_to_string(&word));
+            }
+            println!();
         }
 
         println!();
