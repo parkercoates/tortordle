@@ -1,6 +1,8 @@
+mod colored_guess;
 mod data_structures;
 mod word;
 
+use colored_guess::*;
 use data_structures::{LetterHistogram, LetterSet};
 use word::*;
 
@@ -13,91 +15,6 @@ use std::{cmp::Ordering, io::Write, iter::zip, process::ExitCode};
 const fn slice_as_array_ref<T, const N: usize>(slice: &[T]) -> &[T; N] {
     assert!(N <= slice.len());
     unsafe { &*slice.as_ptr().cast::<[T; N]>() }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-enum LetterState {
-    Black,
-    Yellow,
-    Green,
-}
-
-impl LetterState {
-    const fn color(self) -> Color {
-        match self {
-            Self::Black => Color::Black,
-            Self::Yellow => Color::Yellow,
-            Self::Green => Color::Green,
-        }
-    }
-}
-
-struct ColoredWord {
-    slots: [(Letter, LetterState); WORD_LENGTH],
-}
-
-impl ColoredWord {
-    fn iter(&self) -> std::slice::Iter<(Letter, LetterState)> {
-        self.slots.iter()
-    }
-
-    // fn word(&self) -> Word {
-    //     [
-    //         self.slots[0].0,
-    //         self.slots[1].0,
-    //         self.slots[2].0,
-    //         self.slots[3].0,
-    //         self.slots[4].0,
-    //     ]
-    // }
-
-    fn formatted(&self) -> String {
-        self.iter()
-            .map(|(letter, state)| letter_with_bg(*letter, state.color()))
-            .join("")
-    }
-
-    fn green_count(&self) -> usize {
-        self.iter()
-            .filter(|(_, state)| *state == LetterState::Green)
-            .count()
-    }
-
-    fn weighted_green_yellow_count(&self) -> f32 {
-        self.iter()
-            .map(|(_, state)| match state {
-                // This dumb weighting does not attempt to assign relative
-                // values to greens and yellows. It just ensures that if the
-                // number of greens+yellows is the same for two guesses, the
-                // guess with more greens will score higher.
-                LetterState::Green => 1.10,
-                LetterState::Yellow => 0.90,
-                LetterState::Black => 0.0,
-            })
-            .sum()
-    }
-}
-
-fn color_guess(guess: Word, answer: Word) -> ColoredWord {
-    let mut slots = [(b' ', LetterState::Black); WORD_LENGTH];
-    let mut yellows = LetterHistogram::new();
-    for (guess_letter, answer_letter, (letter, state)) in
-        itertools::izip!(guess, answer, &mut slots)
-    {
-        *letter = guess_letter;
-        if guess_letter == answer_letter {
-            *state = LetterState::Green;
-        } else {
-            yellows.add_letter(answer_letter);
-        }
-    }
-    for (letter, state) in &mut slots {
-        if *state == LetterState::Black && yellows.contains(*letter) {
-            *state = LetterState::Yellow;
-            yellows.remove_letter(*letter);
-        }
-    }
-    ColoredWord { slots }
 }
 
 #[derive(Clone, Copy)]
@@ -142,7 +59,7 @@ impl WordKnowledge {
         }
     }
 
-    fn from_guess(guess: &ColoredWord) -> Self {
+    fn from_guess(guess: &ColoredGuess) -> Self {
         let mut result = Self::new();
         result.add_guess(guess);
         //
@@ -200,12 +117,12 @@ impl WordKnowledge {
         result
     }
 
-    fn add_guess(&mut self, guess: &ColoredWord) {
+    fn add_guess(&mut self, guess: &ColoredGuess) {
         let mut new_histogram = LetterHistogram::new();
         let mut new_yellows = LetterHistogram::new();
         for (i, (letter, color)) in guess.iter().enumerate() {
             match color {
-                LetterState::Black => {
+                GuessColor::Black => {
                     // If we've already seen a particular letter in yellow in this
                     // guess, seeing it in black only tells us that that this
                     // specific slot can't be that letter.
@@ -222,14 +139,14 @@ impl WordKnowledge {
                         }
                     }
                 }
-                LetterState::Yellow => {
+                GuessColor::Yellow => {
                     new_histogram.add_letter(*letter);
                     new_yellows.add_letter(*letter);
                     if let LetterKnowledge::IsNot(set) = &mut self.slots[i] {
                         set.insert(*letter);
                     }
                 }
-                LetterState::Green => {
+                GuessColor::Green => {
                     new_histogram.add_letter(*letter);
                     self.slots[i] = LetterKnowledge::Is(*letter);
                 }
