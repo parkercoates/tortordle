@@ -35,12 +35,12 @@ impl PossibleAnswer {
 }
 
 #[derive(PartialEq, PartialOrd)]
-struct ScoredWord {
+struct ScoredGuess {
     word: Word,
     score: f32,
 }
 
-impl ScoredWord {
+impl ScoredGuess {
     fn cmp_ascending_score(lhs: &Self, rhs: &Self) -> Ordering {
         lhs.score
             .total_cmp(&rhs.score)
@@ -73,19 +73,19 @@ fn average_remaining_possibilites(guess: Word, possibilities: &[PossibleAnswer])
 fn best_guesses_by_remaining_possibilities(
     possibilities: &[PossibleAnswer],
     count: usize,
-) -> Vec<ScoredWord> {
+) -> Vec<ScoredGuess> {
     let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredWord>::with_capacity(possibilities.len());
+    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
 
     possibilities
         .par_iter()
-        .map(|guess| ScoredWord {
+        .map(|guess| ScoredGuess {
             word: guess.word,
             score: average_remaining_possibilites(guess.word, possibilities),
         })
         .collect_into_vec(&mut rankings);
 
-    rankings.partial_sort(count, ScoredWord::cmp_ascending_score);
+    rankings.partial_sort(count, ScoredGuess::cmp_ascending_score);
     rankings.truncate(count);
     rankings
 }
@@ -98,19 +98,19 @@ fn average_green_count(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
     count as f32 / possibilities.len() as f32
 }
 
-fn best_guesses_by_green_count(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredWord> {
+fn best_guesses_by_green_count(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredGuess> {
     let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredWord>::with_capacity(possibilities.len());
+    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
 
     possibilities
         .par_iter()
-        .map(|guess| ScoredWord {
+        .map(|guess| ScoredGuess {
             word: guess.word,
             score: average_green_count(guess.word, possibilities),
         })
         .collect_into_vec(&mut rankings);
 
-    rankings.partial_sort(count, ScoredWord::cmp_descending_score);
+    rankings.partial_sort(count, ScoredGuess::cmp_descending_score);
     rankings.truncate(count);
     rankings
 }
@@ -126,19 +126,19 @@ fn average_weighted_green_yellow_count(guess: Word, possibilities: &[PossibleAns
 fn best_guesses_by_weighted_green_yellow_count(
     possibilities: &[PossibleAnswer],
     count: usize,
-) -> Vec<ScoredWord> {
+) -> Vec<ScoredGuess> {
     let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredWord>::with_capacity(possibilities.len());
+    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
 
     possibilities
         .par_iter()
-        .map(|guess| ScoredWord {
+        .map(|guess| ScoredGuess {
             word: guess.word,
             score: average_weighted_green_yellow_count(guess.word, possibilities),
         })
         .collect_into_vec(&mut rankings);
 
-    rankings.partial_sort(count, ScoredWord::cmp_descending_score);
+    rankings.partial_sort(count, ScoredGuess::cmp_descending_score);
     rankings.truncate(count);
     rankings
 }
@@ -298,7 +298,7 @@ fn main() -> ExitCode {
             println!("\n           Suggested Guesses:");
 
             print!("{:>COLON_COLUMN$}: ", "Highest green count");
-            for ScoredWord { score, word } in
+            for ScoredGuess { score, word } in
                 best_guesses_by_green_count(&possibilities, SUGGESTIONS_TO_SHOW)
             {
                 print!("{}={score:.2}  ", letters_to_string(&word));
@@ -306,7 +306,7 @@ fn main() -> ExitCode {
             println!();
 
             print!("{:>COLON_COLUMN$}: ", "Highest green/yellow count");
-            for ScoredWord { score, word } in
+            for ScoredGuess { score, word } in
                 best_guesses_by_weighted_green_yellow_count(&possibilities, SUGGESTIONS_TO_SHOW)
             {
                 print!("{}={score:.2}  ", letters_to_string(&word));
@@ -314,7 +314,7 @@ fn main() -> ExitCode {
             println!();
 
             print!("{:>COLON_COLUMN$}: ", "Fewest remaining words");
-            for ScoredWord { score, word } in
+            for ScoredGuess { score, word } in
                 best_guesses_by_remaining_possibilities(&possibilities, SUGGESTIONS_TO_SHOW)
             {
                 print!("{}={score:.2}  ", letters_to_string(&word));
