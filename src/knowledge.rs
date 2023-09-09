@@ -1,7 +1,7 @@
 use crate::colored_guess::{ColoredGuess, GuessColor};
 use crate::data_structures::{LetterHistogram, LetterSet};
+use crate::possibilities::PossibleAnswer;
 use crate::word::*;
-use crate::PossibleAnswer;
 
 use colored::Color;
 use itertools::Itertools;

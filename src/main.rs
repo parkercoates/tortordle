@@ -1,147 +1,22 @@
 mod colored_guess;
 mod data_structures;
+mod guess_suggestions;
 mod knowledge;
+mod possibilities;
 mod word;
 
-use colored_guess::*;
-use data_structures::LetterHistogram;
+use colored_guess::color_guess;
+use guess_suggestions::{
+    best_guesses_by_green_count, best_guesses_by_remaining_possibilities,
+    best_guesses_by_weighted_green_yellow_count, ScoredGuess,
+};
 use knowledge::WordKnowledge;
+use possibilities::all_possible_answers;
 use word::*;
 
 use colored::Color;
 use itertools::Itertools;
-use partial_sort::PartialSort;
-use rayon::prelude::*;
-use std::{cmp::Ordering, io::Write, process::ExitCode};
-
-const fn slice_as_array_ref<T, const N: usize>(slice: &[T]) -> &[T; N] {
-    assert!(N <= slice.len());
-    unsafe { &*slice.as_ptr().cast::<[T; N]>() }
-}
-
-
-struct PossibleAnswer {
-    word: Word,
-    histogram: LetterHistogram,
-}
-
-impl PossibleAnswer {
-    fn from_word(word: Word) -> Self {
-        Self {
-            word,
-            histogram: LetterHistogram::from_word(word),
-        }
-    }
-}
-
-#[derive(PartialEq, PartialOrd)]
-struct ScoredGuess {
-    word: Word,
-    score: f32,
-}
-
-impl ScoredGuess {
-    fn cmp_ascending_score(lhs: &Self, rhs: &Self) -> Ordering {
-        lhs.score
-            .total_cmp(&rhs.score)
-            .then(lhs.word.cmp(&rhs.word))
-    }
-
-    fn cmp_descending_score(lhs: &Self, rhs: &Self) -> Ordering {
-        lhs.score
-            .total_cmp(&rhs.score)
-            .reverse()
-            .then(lhs.word.cmp(&rhs.word))
-    }
-}
-
-fn average_remaining_possibilites(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
-    let mut count = 0usize;
-    for answer in possibilities {
-        if answer.word != guess {
-            let knowledge = WordKnowledge::from_guess(&color_guess(guess, answer.word));
-            for possibility in possibilities {
-                if knowledge.matches(possibility) {
-                    count += 1;
-                }
-            }
-        }
-    }
-    count as f32 / possibilities.len() as f32
-}
-
-fn best_guesses_by_remaining_possibilities(
-    possibilities: &[PossibleAnswer],
-    count: usize,
-) -> Vec<ScoredGuess> {
-    let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
-
-    possibilities
-        .par_iter()
-        .map(|guess| ScoredGuess {
-            word: guess.word,
-            score: average_remaining_possibilites(guess.word, possibilities),
-        })
-        .collect_into_vec(&mut rankings);
-
-    rankings.partial_sort(count, ScoredGuess::cmp_ascending_score);
-    rankings.truncate(count);
-    rankings
-}
-
-fn average_green_count(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
-    let count: usize = possibilities
-        .iter()
-        .map(|possibility| color_guess(guess, possibility.word).green_count())
-        .sum();
-    count as f32 / possibilities.len() as f32
-}
-
-fn best_guesses_by_green_count(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredGuess> {
-    let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
-
-    possibilities
-        .par_iter()
-        .map(|guess| ScoredGuess {
-            word: guess.word,
-            score: average_green_count(guess.word, possibilities),
-        })
-        .collect_into_vec(&mut rankings);
-
-    rankings.partial_sort(count, ScoredGuess::cmp_descending_score);
-    rankings.truncate(count);
-    rankings
-}
-
-fn average_weighted_green_yellow_count(guess: Word, possibilities: &[PossibleAnswer]) -> f32 {
-    let count: f32 = possibilities
-        .iter()
-        .map(|possibility| color_guess(guess, possibility.word).weighted_green_yellow_count())
-        .sum();
-    count / possibilities.len() as f32
-}
-
-fn best_guesses_by_weighted_green_yellow_count(
-    possibilities: &[PossibleAnswer],
-    count: usize,
-) -> Vec<ScoredGuess> {
-    let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
-
-    possibilities
-        .par_iter()
-        .map(|guess| ScoredGuess {
-            word: guess.word,
-            score: average_weighted_green_yellow_count(guess.word, possibilities),
-        })
-        .collect_into_vec(&mut rankings);
-
-    rankings.partial_sort(count, ScoredGuess::cmp_descending_score);
-    rankings.truncate(count);
-    rankings
-}
+use std::{io::Write, process::ExitCode};
 
 fn prompt_for_word(prompt: &str) -> Option<Word> {
     let mut input = String::new();
@@ -171,8 +46,6 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
         return word;
     }
 }
-
-static ANSWERS: [Letter; 13890] = *std::include_bytes!("WORDLE-ANSWERS.txt");
 
 fn main() -> ExitCode {
     const PROMPTS: [&str; 7] = [
@@ -212,14 +85,7 @@ fn main() -> ExitCode {
 
     let answer = words.pop().unwrap();
 
-    let mut possibilities: Vec<PossibleAnswer> = ANSWERS
-        .chunks_exact(WORD_LENGTH + 1) // Five letters then a newline
-        .map(|chunk| {
-            let word: Word = *slice_as_array_ref(chunk);
-            assert!(word.iter().all(u8::is_ascii_uppercase));
-            PossibleAnswer::from_word(word)
-        })
-        .collect();
+    let mut possibilities = all_possible_answers();
 
     // println!("Starting words that lead to the fewest remaining words on average:");
     // for (count, word) in find_best_of_possibilities(&possibilities, 20) {
