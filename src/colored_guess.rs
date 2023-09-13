@@ -42,18 +42,10 @@ impl ColoredGuess {
             .count()
     }
 
-    pub fn weighted_green_yellow_count(&self) -> f32 {
+    pub fn green_yellow_count(&self) -> usize {
         self.iter()
-            .map(|(_, state)| match state {
-                // This dumb weighting does not attempt to assign relative
-                // values to greens and yellows. It just ensures that if the
-                // number of greens+yellows is the same for two guesses, the
-                // guess with more greens will score higher.
-                GuessColor::Green => 1.10,
-                GuessColor::Yellow => 0.90,
-                GuessColor::Black => 0.0,
-            })
-            .sum()
+            .filter(|(_, state)| *state != GuessColor::Black)
+            .count()
     }
 }
 

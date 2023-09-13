@@ -138,8 +138,8 @@ impl WordKnowledge {
         )
     }
 
-    pub fn format_possibility(&self, possibility: &PossibleAnswer) -> String {
-        std::iter::zip(possibility.word, &self.slots)
+    pub fn format_word(&self, word: Word) -> String {
+        std::iter::zip(word, &self.slots)
             .map(|(letter, slot)| match slot {
                 LetterKnowledge::Is(known_letter) if letter == *known_letter => {
                     letter_with_fg(letter, Color::Green)

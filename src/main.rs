@@ -6,10 +6,7 @@ mod possibilities;
 mod word;
 
 use colored_guess::color_guess;
-use guess_suggestions::{
-    best_guesses_by_green_count, best_guesses_by_remaining_possibilities,
-    best_guesses_by_weighted_green_yellow_count, ScoredGuess,
-};
+use guess_suggestions::best_guesses;
 use knowledge::WordKnowledge;
 use possibilities::all_possible_answers;
 use word::*;
@@ -139,12 +136,12 @@ fn main() -> ExitCode {
             ),
             1 => println!(
                 "           1 word remains: {}",
-                knowledge.format_possibility(&possibilities[0])
+                knowledge.format_word(possibilities[0].word)
             ),
             _ => {
                 let words_string = &possibilities
                     .iter()
-                    .map(|a| knowledge.format_possibility(a))
+                    .map(|a| knowledge.format_word(a.word))
                     .join(" ");
 
                 let label = format!("           {} words remain: ", possibilities.len());
@@ -158,32 +155,29 @@ fn main() -> ExitCode {
             }
         }
 
-        if possibilities.len() > 2 {
-            const SUGGESTIONS_TO_SHOW: usize = 4;
-            const COLON_COLUMN: usize = 40;
-            println!("\n           Suggested Guesses:");
+        // If there are only two possibilities, there is no sense if ranking
+        // them as they are both equally likely.
+        if 2 < possibilities.len() {
+            const LABEL_WIDTH: usize = 22;
+            const COLUMN_WIDTH: usize = 6;
+            let suggestions_to_show = (textwrap::termwidth() - LABEL_WIDTH) / COLUMN_WIDTH;
+            let best_guesses = best_guesses(&possibilities, suggestions_to_show);
 
-            print!("{:>COLON_COLUMN$}: ", "Highest green count");
-            for ScoredGuess { score, word } in
-                best_guesses_by_green_count(&possibilities, SUGGESTIONS_TO_SHOW)
-            {
-                print!("{}={score:.2}  ", letters_to_string(&word));
+            print!("\n{:>LABEL_WIDTH$}: ", "Suggested Guesses");
+            for scored in &best_guesses {
+                print!("{} ", knowledge.format_word(scored.word));
             }
-            println!();
-
-            print!("{:>COLON_COLUMN$}: ", "Highest green/yellow count");
-            for ScoredGuess { score, word } in
-                best_guesses_by_weighted_green_yellow_count(&possibilities, SUGGESTIONS_TO_SHOW)
-            {
-                print!("{}={score:.2}  ", letters_to_string(&word));
+            print!("\n   Avg Remaining Words:");
+            for scored in &best_guesses {
+                print!("{:>COLUMN_WIDTH$.2}", scored.remaining_words);
             }
-            println!();
-
-            print!("{:>COLON_COLUMN$}: ", "Fewest remaining words");
-            for ScoredGuess { score, word } in
-                best_guesses_by_remaining_possibilities(&possibilities, SUGGESTIONS_TO_SHOW)
-            {
-                print!("{}={score:.2}  ", letters_to_string(&word));
+            print!("\nAvg Green/Yellow Count:");
+            for scored in &best_guesses {
+                print!("{:>COLUMN_WIDTH$.2}", scored.green_yellow_count);
+            }
+            print!("\n       Avg Green Count:");
+            for scored in &best_guesses {
+                print!("{:>COLUMN_WIDTH$.2}", scored.green_count);
             }
             println!();
         }
