@@ -24,27 +24,31 @@ impl fmt::Display for Hundredths {
 }
 
 #[derive(PartialEq, Eq)]
-pub struct ScoredGuess {
-    pub word: Word,
-    pub green_count: Hundredths,
-    pub green_yellow_count: Hundredths,
+pub struct Score {
     pub remaining_words: Hundredths,
+    pub green_yellow_count: Hundredths,
+    pub green_count: Hundredths,
 }
 
-impl Ord for ScoredGuess {
+impl Ord for Score {
     fn cmp(&self, o: &Self) -> Ordering {
         self.remaining_words
             .cmp(&o.remaining_words)
             .then(self.green_yellow_count.cmp(&o.green_yellow_count).reverse())
             .then(self.green_count.cmp(&o.green_count).reverse())
-            .then(self.word.cmp(&o.word))
     }
 }
 
-impl PartialOrd for ScoredGuess {
+impl PartialOrd for Score {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct ScoredGuess {
+    pub score: Score,
+    pub word: Word,
 }
 
 fn score_guess(guess: Word, possibilities: &[PossibleAnswer]) -> ScoredGuess {
@@ -66,9 +70,11 @@ fn score_guess(guess: Word, possibilities: &[PossibleAnswer]) -> ScoredGuess {
     }
     ScoredGuess {
         word: guess,
-        green_count: Hundredths::from_div(green_count, possibilities.len()),
-        green_yellow_count: Hundredths::from_div(green_yellow_count, possibilities.len()),
-        remaining_words: Hundredths::from_div(remaining_count, possibilities.len()),
+        score: Score {
+            green_count: Hundredths::from_div(green_count, possibilities.len()),
+            green_yellow_count: Hundredths::from_div(green_yellow_count, possibilities.len()),
+            remaining_words: Hundredths::from_div(remaining_count, possibilities.len()),
+        },
     }
 }
 

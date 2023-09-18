@@ -169,15 +169,15 @@ fn main() -> ExitCode {
             }
             print!("\n   Avg Remaining Words:");
             for scored in &best_guesses {
-                print!("{:>COLUMN_WIDTH$.2}", scored.remaining_words);
+                print!("{:>COLUMN_WIDTH$.2}", scored.score.remaining_words);
             }
             print!("\nAvg Green/Yellow Count:");
             for scored in &best_guesses {
-                print!("{:>COLUMN_WIDTH$.2}", scored.green_yellow_count);
+                print!("{:>COLUMN_WIDTH$.2}", scored.score.green_yellow_count);
             }
             print!("\n       Avg Green Count:");
             for scored in &best_guesses {
-                print!("{:>COLUMN_WIDTH$.2}", scored.green_count);
+                print!("{:>COLUMN_WIDTH$.2}", scored.score.green_count);
             }
             println!();
         }
