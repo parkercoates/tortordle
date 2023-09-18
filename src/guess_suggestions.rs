@@ -1,26 +1,49 @@
 use partial_sort::PartialSort;
 use rayon::prelude::*;
 use std::cmp::Ordering;
+use std::fmt;
 
 use crate::colored_guess::color_guess;
 use crate::knowledge::WordKnowledge;
 use crate::possibilities::PossibleAnswer;
 use crate::word::Word;
 
-#[derive(PartialEq)]
-pub struct ScoredGuess {
-    pub word: Word,
-    pub green_count: f32,
-    pub green_yellow_count: f32,
-    pub remaining_words: f32,
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Hundredths(i32);
+
+impl Hundredths {
+    fn from_div(numerator: usize, denominator: usize) -> Self {
+        Self(((100.0 * numerator as f64) / denominator as f64).round() as i32)
+    }
 }
 
-impl ScoredGuess {
-    fn cmp(lhs: &Self, rhs: &Self) -> Ordering {
-        f32::total_cmp(&lhs.remaining_words, &rhs.remaining_words)
-            .then(f32::total_cmp(&lhs.green_yellow_count, &rhs.green_yellow_count).reverse())
-            .then(f32::total_cmp(&lhs.green_count, &rhs.green_count).reverse())
-            .then(lhs.word.cmp(&rhs.word))
+impl fmt::Display for Hundredths {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        (self.0 as f64 / 100.0).fmt(f)
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub struct ScoredGuess {
+    pub word: Word,
+    pub green_count: Hundredths,
+    pub green_yellow_count: Hundredths,
+    pub remaining_words: Hundredths,
+}
+
+impl Ord for ScoredGuess {
+    fn cmp(&self, o: &Self) -> Ordering {
+        self.remaining_words
+            .cmp(&o.remaining_words)
+            .then(self.green_yellow_count.cmp(&o.green_yellow_count).reverse())
+            .then(self.green_count.cmp(&o.green_count).reverse())
+            .then(self.word.cmp(&o.word))
+    }
+}
+
+impl PartialOrd for ScoredGuess {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -43,9 +66,9 @@ fn score_guess(guess: Word, possibilities: &[PossibleAnswer]) -> ScoredGuess {
     }
     ScoredGuess {
         word: guess,
-        green_count: green_count as f32 / possibilities.len() as f32,
-        green_yellow_count: green_yellow_count as f32 / possibilities.len() as f32,
-        remaining_words: remaining_count as f32 / possibilities.len() as f32,
+        green_count: Hundredths::from_div(green_count, possibilities.len()),
+        green_yellow_count: Hundredths::from_div(green_yellow_count, possibilities.len()),
+        remaining_words: Hundredths::from_div(remaining_count, possibilities.len()),
     }
 }
 
