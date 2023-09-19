@@ -84,16 +84,6 @@ fn main() -> ExitCode {
 
     let mut possibilities = all_possible_answers();
 
-    // println!("Starting words that lead to the fewest remaining words on average:");
-    // for (count, word) in find_best_of_possibilities(&possibilities, 20) {
-    //     println!(
-    //         "{}: {:.2}",
-    //         letters_to_string(&word),
-    //         count as f32 / possibilities.len() as f32
-    //     );
-    // }
-    // return ExitCode::SUCCESS;
-
     println!("\nGuess Analysis:");
     let mut knowledge = WordKnowledge::new();
     for word in &words {
@@ -159,25 +149,32 @@ fn main() -> ExitCode {
         // them as they are both equally likely.
         if 2 < possibilities.len() {
             const LABEL_WIDTH: usize = 22;
-            const COLUMN_WIDTH: usize = 6;
+            const COLUMN_WIDTH: usize = 5;
             let suggestions_to_show = (textwrap::termwidth() - LABEL_WIDTH) / COLUMN_WIDTH;
             let best_guesses = best_guesses(&possibilities, suggestions_to_show);
 
-            print!("\n{:>LABEL_WIDTH$}: ", "Suggested Guesses");
+            print!("\n{:>LABEL_WIDTH$}:", "Suggested Guesses");
             for scored in &best_guesses {
-                print!("{} ", knowledge.format_word(scored.word));
+                print!(" {:^COLUMN_WIDTH$}", scored.rank);
             }
+            print!("\n                 Guess:");
+            for scored in &best_guesses {
+                // We can't use COLUMN_WIDTH here because the formatting codes
+                // throw off the justification counts.
+                print!(" {}", knowledge.format_word(scored.word));
+            }
+
             print!("\n   Avg Remaining Words:");
             for scored in &best_guesses {
-                print!("{:>COLUMN_WIDTH$.2}", scored.score.remaining_words);
+                print!(" {:>COLUMN_WIDTH$.2}", scored.score.remaining_words);
             }
             print!("\nAvg Green/Yellow Count:");
             for scored in &best_guesses {
-                print!("{:>COLUMN_WIDTH$.2}", scored.score.green_yellow_count);
+                print!(" {:>COLUMN_WIDTH$.2}", scored.score.green_yellow_count);
             }
             print!("\n       Avg Green Count:");
             for scored in &best_guesses {
-                print!("{:>COLUMN_WIDTH$.2}", scored.score.green_count);
+                print!(" {:>COLUMN_WIDTH$.2}", scored.score.green_count);
             }
             println!();
         }

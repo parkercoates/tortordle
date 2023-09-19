@@ -48,6 +48,7 @@ impl PartialOrd for Score {
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct ScoredGuess {
     pub score: Score,
+    pub rank: usize,
     pub word: Word,
 }
 
@@ -70,11 +71,31 @@ fn score_guess(guess: Word, possibilities: &[PossibleAnswer]) -> ScoredGuess {
     }
     ScoredGuess {
         word: guess,
+        rank: 0,
         score: Score {
             green_count: Hundredths::from_div(green_count, possibilities.len()),
             green_yellow_count: Hundredths::from_div(green_yellow_count, possibilities.len()),
             remaining_words: Hundredths::from_div(remaining_count, possibilities.len()),
         },
+    }
+}
+
+fn set_ranks(guesses: &mut Vec<ScoredGuess>) {
+    let mut it = guesses.iter_mut();
+    if let Some(first) = it.next() {
+        let mut count = 1usize;
+        first.rank = count;
+        let mut previous = first;
+
+        for v in it {
+            count += 1;
+            if v.score == previous.score {
+                v.rank = previous.rank;
+            } else {
+                v.rank = count;
+                previous = v;
+            }
+        }
     }
 }
 
@@ -89,5 +110,6 @@ pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<Score
 
     rankings.partial_sort(count, ScoredGuess::cmp);
     rankings.truncate(count);
+    set_ranks(&mut rankings);
     rankings
 }
