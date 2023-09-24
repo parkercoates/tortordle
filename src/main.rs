@@ -9,10 +9,10 @@ use colored_guess::color_guess;
 use guess_suggestions::{best_guesses, Hundredths, ScoredGuess};
 use knowledge::WordKnowledge;
 use possibilities::all_possible_answers;
+use terminal_size::terminal_size;
 use word::*;
 
 use colored::Color;
-use itertools::Itertools;
 use std::{io::Write, process::ExitCode};
 
 const LABEL_WIDTH: usize = 22;
@@ -116,9 +116,12 @@ fn main() -> ExitCode {
     }
 
     let mut possibilities = all_possible_answers();
+    let mut knowledge = WordKnowledge::new();
+
+    let term_width = terminal_size().map_or(80, |(w, _h)| w.0 as usize);
+    let column_count = (term_width - LABEL_WIDTH - 2) / (COLUMN_WIDTH + 1);
 
     println!("\n================= Guess Analysis =================\n");
-    let mut knowledge = WordKnowledge::new();
     for (guess_index, word) in words.iter().enumerate() {
         let guess = color_guess(*word, answer);
         println_label_value(&format!("Guess #{}", guess_index + 1), &guess.formatted());
@@ -145,29 +148,23 @@ fn main() -> ExitCode {
                 &knowledge.format_word(possibilities[0].word),
             ),
             _ => {
-                let words_string = &possibilities
-                    .iter()
-                    .map(|a| knowledge.format_word(a.word))
-                    .join(" ");
-
-                let label_text = format!("{} words remain", possibilities.len());
-                let label = format!("{:>LABEL_WIDTH$}: ", label_text);
-                let indent = " ".repeat(label.len());
-                let options = textwrap::Options::with_termwidth()
-                    .initial_indent(&label)
-                    .subsequent_indent(&indent);
-                for line in textwrap::wrap(words_string, options) {
-                    println!("{line}");
+                for (i, posibility) in possibilities.iter().enumerate() {
+                    if i == 0 {
+                        print_label(&format!("{} words remain", possibilities.len()));
+                    } else if i % column_count == 0 {
+                        println!();
+                        print_indent();
+                    }
+                    print!("{} ", knowledge.format_word(posibility.word));
                 }
+                println!();
             }
         }
 
         // If there are only two possibilities, there is no sense if ranking
         // them as they are both equally likely.
         if 2 < possibilities.len() {
-            let suggestions_to_show =
-                (textwrap::termwidth() - LABEL_WIDTH - 2) / (COLUMN_WIDTH + 1);
-            let best_guesses = best_guesses(&possibilities, suggestions_to_show);
+            let best_guesses = best_guesses(&possibilities, column_count);
 
             println!();
 
