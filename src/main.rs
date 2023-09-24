@@ -114,9 +114,9 @@ fn main() -> ExitCode {
 
     println!("\n================= Guess Analysis =================\n");
     let mut knowledge = WordKnowledge::new();
-    for word in &words {
+    for (guess_index, word) in words.iter().enumerate() {
         let guess = color_guess(*word, answer);
-        println_label_value("Guess", &guess.formatted());
+        println_label_value(&format!("Guess #{}", guess_index + 1), &guess.formatted());
 
         if !knowledge.matches_word(*word) {
             println_note("This guess conflicted with previously collected information!");
