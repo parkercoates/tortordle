@@ -6,7 +6,7 @@ mod possibilities;
 mod word;
 
 use colored_guess::color_guess;
-use guess_suggestions::best_guesses;
+use guess_suggestions::{best_guesses, Hundredths, ScoredGuess};
 use knowledge::WordKnowledge;
 use possibilities::all_possible_answers;
 use word::*;
@@ -15,12 +15,40 @@ use colored::Color;
 use itertools::Itertools;
 use std::{io::Write, process::ExitCode};
 
+const LABEL_WIDTH: usize = 22;
+const COLUMN_WIDTH: usize = 5;
+
+fn print_indent() {
+    print!("{:>LABEL_WIDTH$}  ", "");
+}
+
+fn print_label(text: &str) {
+    print!("{text:>LABEL_WIDTH$}: ",);
+}
+
+fn println_label_value(text: &str, value: &str) {
+    println!("{text:>LABEL_WIDTH$}: {value}",);
+}
+
+fn println_note(text: &str) {
+    print_indent();
+    println!("{}", &str_with_fg(text, Color::Magenta),);
+}
+
+fn print_number_row(label: &str, guesses: &[ScoredGuess], getter: fn(&ScoredGuess) -> Hundredths) {
+    print_label(label);
+    for scored in guesses {
+        print!("{:>COLUMN_WIDTH$.2} ", getter(scored));
+    }
+    println!();
+}
+
 fn prompt_for_word(prompt: &str) -> Option<Word> {
     let mut input = String::new();
     loop {
         input.clear();
 
-        print!("{prompt}");
+        print_label(prompt);
         std::io::stdout().flush().unwrap();
 
         if std::io::stdin().read_line(&mut input).is_err() {
@@ -46,13 +74,13 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
 
 fn main() -> ExitCode {
     const PROMPTS: [&str; 7] = [
-        "  First guess: ",
-        " Second guess: ",
-        "  Third guess: ",
-        " Fourth guess: ",
-        "  Fifth guess: ",
-        "  Sixth guess: ",
-        "       Answer: ",
+        "First guess",
+        "Second guess",
+        "Third guess",
+        "Fourth guess",
+        "Fifth guess",
+        "Sixth guess",
+        "Answer",
     ];
 
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -84,49 +112,27 @@ fn main() -> ExitCode {
 
     let mut possibilities = all_possible_answers();
 
-    println!("\nGuess Analysis:");
+    println!("\n================= Guess Analysis =================\n");
     let mut knowledge = WordKnowledge::new();
     for word in &words {
-        let was_mistake = !knowledge.matches_word(*word);
-
         let guess = color_guess(*word, answer);
-        knowledge.add_guess(&guess);
-        println!(
-            "   {}   Solve state: {}",
-            guess.formatted(),
-            knowledge.formatted()
-        );
+        println_label_value("Guess", &guess.formatted());
 
-        if was_mistake {
-            println!(
-                "           {}",
-                str_with_fg(
-                    "NOTE! This guess conflicted with previously collected information!",
-                    Color::Magenta
-                )
-            );
+        if !knowledge.matches_word(*word) {
+            println_note("This guess conflicted with previously collected information!");
         } else if !possibilities.iter().any(|a| a.word == *word) {
-            println!(
-                "           {}",
-                str_with_fg(
-                    "NOTE! This guess was not in the list of remaining possibilities!",
-                    Color::Magenta
-                )
-            );
+            println_note("This guess was not in the list of remaining possibilities!");
         }
+
+        knowledge.add_guess(&guess);
+        println_label_value("Solve State", &knowledge.formatted());
 
         possibilities.retain(|p| knowledge.matches(p));
         match possibilities.len() {
-            0 => println!(
-                "           {}",
-                str_with_fg(
-                    "NOTE! There are no words remaining! Something went wrong!",
-                    Color::Magenta
-                )
-            ),
-            1 => println!(
-                "           1 word remains: {}",
-                knowledge.format_word(possibilities[0].word)
+            0 => println_note("There are no words remaining! Something went wrong!"),
+            1 => println_label_value(
+                "1 word remains",
+                &knowledge.format_word(possibilities[0].word),
             ),
             _ => {
                 let words_string = &possibilities
@@ -134,7 +140,8 @@ fn main() -> ExitCode {
                     .map(|a| knowledge.format_word(a.word))
                     .join(" ");
 
-                let label = format!("           {} words remain: ", possibilities.len());
+                let label_text = format!("{} words remain", possibilities.len());
+                let label = format!("{:>LABEL_WIDTH$}: ", label_text);
                 let indent = " ".repeat(label.len());
                 let options = textwrap::Options::with_termwidth()
                     .initial_indent(&label)
@@ -148,39 +155,41 @@ fn main() -> ExitCode {
         // If there are only two possibilities, there is no sense if ranking
         // them as they are both equally likely.
         if 2 < possibilities.len() {
-            const LABEL_WIDTH: usize = 22;
-            const COLUMN_WIDTH: usize = 5;
-            let suggestions_to_show = (textwrap::termwidth() - LABEL_WIDTH) / COLUMN_WIDTH;
+            let suggestions_to_show =
+                (textwrap::termwidth() - LABEL_WIDTH - 2) / (COLUMN_WIDTH + 1);
             let best_guesses = best_guesses(&possibilities, suggestions_to_show);
 
-            print!("\n{:>LABEL_WIDTH$}:", "Suggested Guesses");
+            println!();
+
+            print_indent();
             for scored in &best_guesses {
-                print!(" {:^COLUMN_WIDTH$}", scored.rank);
+                print!("{:^COLUMN_WIDTH$} ", scored.rank);
             }
-            print!("\n                 Guess:");
+            println!();
+
+            print_label("Suggested Guesses");
             for scored in &best_guesses {
                 // We can't use COLUMN_WIDTH here because the formatting codes
                 // throw off the justification counts.
-                print!(" {}", knowledge.format_word(scored.word));
-            }
-
-            print!("\n   Avg Remaining Words:");
-            for scored in &best_guesses {
-                print!(" {:>COLUMN_WIDTH$.2}", scored.score.remaining_words);
-            }
-            print!("\nAvg Green/Yellow Count:");
-            for scored in &best_guesses {
-                print!(" {:>COLUMN_WIDTH$.2}", scored.score.green_yellow_count);
-            }
-            print!("\n       Avg Green Count:");
-            for scored in &best_guesses {
-                print!(" {:>COLUMN_WIDTH$.2}", scored.score.green_count);
+                print!("{} ", knowledge.format_word(scored.word));
             }
             println!();
+
+            print_number_row("Avg Remaining Words", &best_guesses, |s| {
+                s.score.remaining_words
+            });
+
+            print_number_row("Avg Green/Yellow Count", &best_guesses, |s| {
+                s.score.green_yellow_count
+            });
+
+            print_number_row("Avg Green Count", &best_guesses, |s| s.score.green_count);
         }
 
         println!();
     }
-    println!("   {}   Solution", letters_with_bg(&answer, Color::Green));
+
+    println_label_value("Solution", &letters_with_bg(&answer, Color::Green));
+
     ExitCode::SUCCESS
 }
