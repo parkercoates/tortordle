@@ -108,7 +108,12 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    let answer = words.pop().unwrap();
+    let answer = *words.last().unwrap();
+
+    let failed = 6 < words.len();
+    if failed {
+        words.pop();
+    }
 
     let mut possibilities = all_possible_answers();
 
@@ -117,6 +122,11 @@ fn main() -> ExitCode {
     for (guess_index, word) in words.iter().enumerate() {
         let guess = color_guess(*word, answer);
         println_label_value(&format!("Guess #{}", guess_index + 1), &guess.formatted());
+
+        if *word == answer {
+            println_label_value("Solve State", "Solved");
+            break;
+        }
 
         if !knowledge.matches_word(*word) {
             println_note("This guess conflicted with previously collected information!");
@@ -189,7 +199,9 @@ fn main() -> ExitCode {
         println!();
     }
 
-    println_label_value("Solution", &letters_with_bg(&answer, Color::Green));
+    if failed {
+        println_label_value("Solution", &letters_with_bg(&answer, Color::Green));
+    }
 
     ExitCode::SUCCESS
 }
