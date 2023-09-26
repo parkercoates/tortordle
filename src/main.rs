@@ -72,7 +72,7 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
     }
 }
 
-fn main() -> ExitCode {
+fn prompt_for_words() -> Vec<Word> {
     const PROMPTS: [&str; 7] = [
         "First guess",
         "Second guess",
@@ -83,18 +83,17 @@ fn main() -> ExitCode {
         "Answer",
     ];
 
+    PROMPTS.into_iter().map_while(prompt_for_word).collect()
+}
+
+fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
-    let mut words: Vec<Word> = Vec::new();
+    let mut words: Vec<Word>;
     if args.is_empty() {
-        for prompt in PROMPTS {
-            if let Some(word) = prompt_for_word(prompt) {
-                words.push(word);
-            } else {
-                break;
-            }
-        }
+        words = prompt_for_words();
     } else {
+        words = Vec::with_capacity(7);
         for arg in args {
             if let Some(word) = make_word(&arg) {
                 words.push(word);
