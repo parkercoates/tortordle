@@ -56,6 +56,11 @@ fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
             return Err(format!("{arg} is not a single word of five A-Z letters!"));
         }
     }
+    if 7 < words.len() {
+        return Err(String::from(
+            "More than 7 words provided on the command line!",
+        ));
+    }
     Ok(CmdArgs { words })
 }
 
