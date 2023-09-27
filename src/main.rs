@@ -15,6 +15,9 @@ use word::*;
 use colored::Color;
 use std::{io::Write, process::ExitCode};
 
+const MAX_GUESSES: usize = 6;
+const MAX_WORDS: usize = MAX_GUESSES + 1;
+
 const LABEL_WIDTH: usize = 22;
 const COLUMN_WIDTH: usize = 5;
 
@@ -48,7 +51,7 @@ struct CmdArgs {
 }
 
 fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
-    let mut words = Vec::with_capacity(7);
+    let mut words = Vec::with_capacity(MAX_WORDS);
     for arg in args.skip(1) {
         if let Some(word) = make_word(&arg) {
             words.push(word);
@@ -56,10 +59,8 @@ fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
             return Err(format!("{arg} is not a single word of five A-Z letters!"));
         }
     }
-    if 7 < words.len() {
-        return Err(String::from(
-            "More than 7 words provided on the command line!",
-        ));
+    if MAX_WORDS < words.len() {
+        return Err(format!("More than {MAX_WORDS} word arguments provided!"));
     }
     Ok(CmdArgs { words })
 }
@@ -94,7 +95,7 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
 }
 
 fn prompt_for_words() -> Vec<Word> {
-    const PROMPTS: [&str; 7] = [
+    const PROMPTS: [&str; MAX_WORDS] = [
         "First guess",
         "Second guess",
         "Third guess",
@@ -126,7 +127,7 @@ fn main() -> ExitCode {
 
     let answer = *words.last().unwrap();
 
-    let failed = 6 < words.len();
+    let failed = MAX_GUESSES < words.len();
     if failed {
         words.pop();
     }
