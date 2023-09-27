@@ -136,20 +136,20 @@ fn print_remaining_words(
     }
 }
 
-fn print_suggestions(possibilities: &[PossibleAnswer], knowledge: &WordKnowledge, columns: usize) {
-    // If there are only two possibilities, there is no sense if ranking
-    // them as they are both equally likely.
-    if 2 < possibilities.len() {
-        let suggestions = best_guesses(possibilities, columns);
-
+fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
+    // If there are two suggestions or less, they are all equally good. If the
+    // last suggestion's rank is 1, they are all tied and therefore equally
+    // good. Regardless, let's not bother showing any suggested guesses.
+    let all_equally_good = suggestions.len() <= 2 || suggestions.last().unwrap().rank == 1;
+    if !all_equally_good {
         print_indent();
-        for suggestion in &suggestions {
+        for suggestion in suggestions {
             print!("{:^COLUMN_WIDTH$} ", suggestion.rank);
         }
         println!();
 
         print_label("Suggested Guesses");
-        for suggestion in &suggestions {
+        for suggestion in suggestions {
             // We can't use COLUMN_WIDTH here because the formatting codes
             // throw off the justification counts.
             print!("{} ", knowledge.format_word(suggestion.word));
@@ -158,7 +158,7 @@ fn print_suggestions(possibilities: &[PossibleAnswer], knowledge: &WordKnowledge
 
         let print_numbers = |label, getter: fn(&ScoredGuess) -> Hundredths| {
             print_label(label);
-            for suggestion in &suggestions {
+            for suggestion in suggestions {
                 print!("{:>COLUMN_WIDTH$.2} ", getter(suggestion));
             }
             println!();
@@ -204,7 +204,8 @@ fn main() -> ExitCode {
     println!("\n================= Guess Analysis =================\n");
     for (guess_index, word) in words.iter().enumerate() {
         if cmd_args.suggest_first_guess || guess_index != 0 {
-            print_suggestions(&possibilities, &knowledge, column_count);
+            let suggestions = best_guesses(&possibilities, column_count);
+            print_suggestions(&suggestions, &knowledge);
         }
 
         let guess = color_guess(*word, answer);
