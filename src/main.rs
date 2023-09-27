@@ -39,13 +39,20 @@ fn println_note(text: &str) {
 }
 
 struct CmdArgs {
+    suggest_first_guess: bool,
     words: Vec<Word>,
 }
 
 fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
+    let mut suggest_first_guess = false;
     let mut words = Vec::with_capacity(MAX_WORDS);
     for arg in args.skip(1) {
-        if let Some(word) = make_word(&arg) {
+        if arg.starts_with('-') {
+            match arg.as_str() {
+                "--suggest-first-guess" => suggest_first_guess = true,
+                _ => return Err(format!("Unrecognized flag: {arg}")),
+            }
+        } else if let Some(word) = make_word(&arg) {
             words.push(word);
         } else {
             return Err(format!("{arg} is not a single word of five A-Z letters!"));
@@ -54,7 +61,10 @@ fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
     if MAX_WORDS < words.len() {
         return Err(format!("More than {MAX_WORDS} word arguments provided!"));
     }
-    Ok(CmdArgs { words })
+    Ok(CmdArgs {
+        suggest_first_guess,
+        words,
+    })
 }
 
 fn prompt_for_word(prompt: &str) -> Option<Word> {
@@ -193,6 +203,10 @@ fn main() -> ExitCode {
 
     println!("\n================= Guess Analysis =================\n");
     for (guess_index, word) in words.iter().enumerate() {
+        if cmd_args.suggest_first_guess || guess_index != 0 {
+            print_suggestions(&possibilities, &knowledge, column_count);
+        }
+
         let guess = color_guess(*word, answer);
         println_label_value(&format!("Guess #{}", guess_index + 1), &guess.formatted());
 
@@ -214,8 +228,6 @@ fn main() -> ExitCode {
         print_remaining_words(&possibilities, &knowledge, column_count);
 
         println!();
-
-        print_suggestions(&possibilities, &knowledge, column_count);
     }
 
     if failed {
