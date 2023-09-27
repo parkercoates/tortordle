@@ -43,6 +43,22 @@ fn print_number_row(label: &str, guesses: &[ScoredGuess], getter: fn(&ScoredGues
     println!();
 }
 
+struct CmdArgs {
+    words: Vec<Word>,
+}
+
+fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
+    let mut words = Vec::with_capacity(7);
+    for arg in args.skip(1) {
+        if let Some(word) = make_word(&arg) {
+            words.push(word);
+        } else {
+            return Err(format!("{arg} is not a single word of five A-Z letters!"));
+        }
+    }
+    Ok(CmdArgs { words })
+}
+
 fn prompt_for_word(prompt: &str) -> Option<Word> {
     let mut input = String::new();
     loop {
@@ -87,24 +103,20 @@ fn prompt_for_words() -> Vec<Word> {
 }
 
 fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-
-    let mut words: Vec<Word>;
-    if args.is_empty() {
-        words = prompt_for_words();
-    } else {
-        words = Vec::with_capacity(7);
-        for arg in args {
-            if let Some(word) = make_word(&arg) {
-                words.push(word);
-            } else {
-                println!("{arg} is not a single word of five A-Z letters!");
-                return ExitCode::from(1);
-            }
+    let cmd_args = match process_args(std::env::args()) {
+        Err(msg) => {
+            println!("{msg}");
+            return ExitCode::from(1);
         }
-    }
+        Ok(result) => result,
+    };
+
+    let mut words = cmd_args.words;
     if words.is_empty() {
-        return ExitCode::SUCCESS;
+        words = prompt_for_words();
+        if words.is_empty() {
+            return ExitCode::SUCCESS;
+        }
     }
 
     let answer = *words.last().unwrap();
