@@ -8,7 +8,7 @@ mod word;
 use colored_guess::color_guess;
 use guess_suggestions::{best_guesses, Hundredths, ScoredGuess};
 use knowledge::WordKnowledge;
-use possibilities::all_possible_answers;
+use possibilities::{all_possible_answers, PossibleAnswer};
 use terminal_size::terminal_size;
 use word::*;
 
@@ -36,14 +36,6 @@ fn println_label_value(text: &str, value: &str) {
 fn println_note(text: &str) {
     print_indent();
     println!("{}", &str_with_fg(text, Color::Magenta),);
-}
-
-fn print_number_row(label: &str, guesses: &[ScoredGuess], getter: fn(&ScoredGuess) -> Hundredths) {
-    print_label(label);
-    for scored in guesses {
-        print!("{:>COLUMN_WIDTH$.2} ", getter(scored));
-    }
-    println!();
 }
 
 struct CmdArgs {
@@ -108,6 +100,67 @@ fn prompt_for_words() -> Vec<Word> {
     PROMPTS.into_iter().map_while(prompt_for_word).collect()
 }
 
+fn print_remaining_words(
+    possibilities: &[PossibleAnswer],
+    knowledge: &WordKnowledge,
+    columns: usize,
+) {
+    match possibilities.len() {
+        0 => println_note("There are no words remaining! Something went wrong!"),
+        1 => println_label_value(
+            "1 word remains",
+            &knowledge.format_word(possibilities[0].word),
+        ),
+        _ => {
+            for (i, posibility) in possibilities.iter().enumerate() {
+                if i == 0 {
+                    print_label(&format!("{} words remain", possibilities.len()));
+                } else if i % columns == 0 {
+                    println!();
+                    print_indent();
+                }
+                print!("{} ", knowledge.format_word(posibility.word));
+            }
+            println!();
+        }
+    }
+}
+
+fn print_suggestions(possibilities: &[PossibleAnswer], knowledge: &WordKnowledge, columns: usize) {
+    // If there are only two possibilities, there is no sense if ranking
+    // them as they are both equally likely.
+    if 2 < possibilities.len() {
+        let suggestions = best_guesses(possibilities, columns);
+
+        print_indent();
+        for suggestion in &suggestions {
+            print!("{:^COLUMN_WIDTH$} ", suggestion.rank);
+        }
+        println!();
+
+        print_label("Suggested Guesses");
+        for suggestion in &suggestions {
+            // We can't use COLUMN_WIDTH here because the formatting codes
+            // throw off the justification counts.
+            print!("{} ", knowledge.format_word(suggestion.word));
+        }
+        println!();
+
+        let print_numbers = |label, getter: fn(&ScoredGuess) -> Hundredths| {
+            print_label(label);
+            for suggestion in &suggestions {
+                print!("{:>COLUMN_WIDTH$.2} ", getter(suggestion));
+            }
+            println!();
+        };
+
+        print_numbers("Avg Remaining Words", |s| s.score.remaining_words);
+        print_numbers("Avg Green/Yellow Count", |s| s.score.green_yellow_count);
+        print_numbers("Avg Green Count", |s| s.score.green_count);
+        println!();
+    }
+}
+
 fn main() -> ExitCode {
     let cmd_args = match process_args(std::env::args()) {
         Err(msg) => {
@@ -158,59 +211,11 @@ fn main() -> ExitCode {
         println_label_value("Solve State", &knowledge.formatted());
 
         possibilities.retain(|p| knowledge.matches(p));
-        match possibilities.len() {
-            0 => println_note("There are no words remaining! Something went wrong!"),
-            1 => println_label_value(
-                "1 word remains",
-                &knowledge.format_word(possibilities[0].word),
-            ),
-            _ => {
-                for (i, posibility) in possibilities.iter().enumerate() {
-                    if i == 0 {
-                        print_label(&format!("{} words remain", possibilities.len()));
-                    } else if i % column_count == 0 {
-                        println!();
-                        print_indent();
-                    }
-                    print!("{} ", knowledge.format_word(posibility.word));
-                }
-                println!();
-            }
-        }
-
-        // If there are only two possibilities, there is no sense if ranking
-        // them as they are both equally likely.
-        if 2 < possibilities.len() {
-            let best_guesses = best_guesses(&possibilities, column_count);
-
-            println!();
-
-            print_indent();
-            for scored in &best_guesses {
-                print!("{:^COLUMN_WIDTH$} ", scored.rank);
-            }
-            println!();
-
-            print_label("Suggested Guesses");
-            for scored in &best_guesses {
-                // We can't use COLUMN_WIDTH here because the formatting codes
-                // throw off the justification counts.
-                print!("{} ", knowledge.format_word(scored.word));
-            }
-            println!();
-
-            print_number_row("Avg Remaining Words", &best_guesses, |s| {
-                s.score.remaining_words
-            });
-
-            print_number_row("Avg Green/Yellow Count", &best_guesses, |s| {
-                s.score.green_yellow_count
-            });
-
-            print_number_row("Avg Green Count", &best_guesses, |s| s.score.green_count);
-        }
+        print_remaining_words(&possibilities, &knowledge, column_count);
 
         println!();
+
+        print_suggestions(&possibilities, &knowledge, column_count);
     }
 
     if failed {
