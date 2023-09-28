@@ -13,6 +13,17 @@ enum LetterKnowledge {
 }
 
 impl LetterKnowledge {
+    fn set_letter(&mut self, letter: Letter) {
+        *self = Self::Is(letter);
+    }
+
+    fn remove_letter(&mut self, letter: Letter) {
+        match self {
+            Self::Is(_) => (),
+            Self::IsNot(set) => set.insert(letter),
+        }
+    }
+
     fn formatted(self, yellows: LetterHistogram) -> String {
         match self {
             Self::Is(letter) => letter_with_fg(letter, Color::Green),
@@ -55,43 +66,51 @@ impl WordKnowledge {
     }
 
     pub fn add_guess(&mut self, guess: &ColoredGuess) {
+        // First we add information from the guess into the existing slots and
+        // build up new all-letter and yellow-letter histograms for this guess.
         let mut new_histogram = LetterHistogram::new();
         let mut new_yellows = LetterHistogram::new();
         for (i, (letter, color)) in guess.iter().enumerate() {
             match color {
-                GuessColor::Black => {
-                    // If we've already seen a particular letter in yellow in this
-                    // guess, seeing it in black only tells us that that this
-                    // specific slot can't be that letter.
-                    if new_yellows.contains(*letter) {
-                        if let LetterKnowledge::IsNot(set) = &mut self.slots[i] {
-                            set.insert(*letter);
-                        }
-                    // Otherwise, we know that letter occurs in no slot.
-                    } else {
-                        for slot in &mut self.slots {
-                            if let LetterKnowledge::IsNot(set) = slot {
-                                set.insert(*letter);
-                            }
-                        }
-                    }
+                GuessColor::Green => {
+                    new_histogram.add_letter(*letter);
+                    self.slots[i].set_letter(*letter);
                 }
                 GuessColor::Yellow => {
                     new_histogram.add_letter(*letter);
                     new_yellows.add_letter(*letter);
-                    if let LetterKnowledge::IsNot(set) = &mut self.slots[i] {
-                        set.insert(*letter);
-                    }
+                    self.slots[i].remove_letter(*letter);
                 }
-                GuessColor::Green => {
-                    new_histogram.add_letter(*letter);
-                    self.slots[i] = LetterKnowledge::Is(*letter);
+                GuessColor::Black => {
+                    if new_yellows.contains(*letter) {
+                        // If we've already seen this letter as yellow to the
+                        // left of this slot in _this_ guess, seeing it again as
+                        // black only tells us that that this specific slot
+                        // can't be that letter.
+                        self.slots[i].remove_letter(*letter);
+                    } else {
+                        // Otherwise, we know that letter occurs in no slot.
+                        self.slots.iter_mut().for_each(|s| s.remove_letter(*letter));
+                    }
                 }
             }
         }
 
+        // Second, we get the new all-letter histogram by merging the previous
+        // histogram with the histogram for this guess, taking the higher count
+        // of the two for each letter.
+        //
+        // Note that we can't just use `histogram` because of non-hard mode
+        // players. `histogram` may be missing letters from previous guesses.
         self.histogram.merge_via_max(new_histogram);
 
+        // Third, we compute the new set of yellows by starting with the new
+        // all letter histogram and removing all the greens.
+        //
+        // Note that we can't just use `new_yellows` because of non-hard mode
+        // players. The new guess could conflict with previous guesses, meaning
+        // `new_yellows` could contain letters that were green in previous
+        // guesses or be missing yellow letters from previous guesses.
         self.yellows = self.histogram;
         for slot in &self.slots {
             if let LetterKnowledge::Is(letter) = slot {
@@ -99,17 +118,24 @@ impl WordKnowledge {
             }
         }
 
+        // Finally, we search for yellow letters whose count exactly equals the
+        // number of slots where that letter could possibly be put, allowing us
+        // to place the letter in those slots and remove it from yellows.
+        //
+        // Note that this has to support the extremely rare case of having two
+        // yellows of the same letter and only two slots they could match.
+        // (Something I've never seen happen in a real game.)
         for (count, &letter) in self.yellows.clone().letters().dedup_with_count() {
-            let matches = self
+            let match_count = self
                 .slots
                 .iter()
                 .filter(|slot| slot.matches(letter))
                 .count();
-            if matches == count {
+            if match_count == count {
                 for slot in &mut self.slots {
                     if let LetterKnowledge::IsNot(_) = slot {
                         if slot.matches(letter) {
-                            *slot = LetterKnowledge::Is(letter);
+                            slot.set_letter(letter);
                             self.yellows.remove_letter(letter);
                         }
                     }
