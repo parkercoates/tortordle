@@ -194,6 +194,7 @@ fn main() -> ExitCode {
     if failed {
         words.pop();
     }
+    let guesses = words;
 
     let mut possibilities = all_possible_answers();
     let mut knowledge = WordKnowledge::new();
@@ -202,27 +203,30 @@ fn main() -> ExitCode {
     let column_count = (term_width - LABEL_WIDTH - 2) / (COLUMN_WIDTH + 1);
 
     println!("\n================= Guess Analysis =================\n");
-    for (guess_index, word) in words.iter().enumerate() {
+    for (guess_index, guess) in guesses.into_iter().enumerate() {
         if cmd_args.suggest_first_guess || guess_index != 0 {
             let suggestions = best_guesses(&possibilities, column_count);
             print_suggestions(&suggestions, &knowledge);
         }
 
-        let guess = color_guess(*word, answer);
-        println_label_value(&format!("Guess #{}", guess_index + 1), &guess.formatted());
+        let colored_guess = color_guess(guess, answer);
+        println_label_value(
+            &format!("Guess #{}", guess_index + 1),
+            &colored_guess.formatted(),
+        );
 
-        if *word == answer {
+        if guess == answer {
             println_label_value("Solve State", "Solved");
             break;
         }
 
-        if !knowledge.matches_word(*word) {
+        if !knowledge.matches_word(guess) {
             println_note("This guess conflicted with previously collected information!");
-        } else if !possibilities.iter().any(|a| a.word == *word) {
+        } else if !possibilities.iter().any(|a| a.word == guess) {
             println_note("This guess was not in the list of remaining possibilities!");
         }
 
-        knowledge.add_guess(&guess);
+        knowledge.add_guess(&colored_guess);
         println_label_value("Solve State", &knowledge.formatted());
 
         possibilities.retain(|p| knowledge.matches(p));
