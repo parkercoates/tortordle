@@ -4,7 +4,7 @@ use crate::possibilities::PossibleAnswer;
 use crate::word::*;
 
 use colored::Color;
-use itertools::Itertools;
+use itertools::{izip, Itertools};
 
 #[derive(Clone, Copy)]
 enum LetterKnowledge {
@@ -144,14 +144,37 @@ impl WordKnowledge {
         }
     }
 
+    pub fn check_for_conflicts(&self, word: Word) -> Vec<Conflict> {
+        let mut conflicts = Vec::new();
+        for (i, letter, slot) in izip!(0..WORD_LENGTH, word, self.slots) {
+            match slot {
+                LetterKnowledge::Is(known) => {
+                    if known != letter {
+                        conflicts.push(Conflict::MustBe(i, known));
+                    }
+                }
+                LetterKnowledge::IsNot(set) => {
+                    if set.contains(letter) {
+                        conflicts.push(Conflict::CannotBe(i, letter));
+                    }
+                }
+            }
+        }
+        for (count_needed, &letter) in self.yellows.letters().dedup_with_count() {
+            let count_found = word.into_iter().filter(|l| *l == letter).count();
+            if count_found < count_needed {
+                conflicts.push(Conflict::Missing(letter, count_needed));
+            }
+        }
+        conflicts
+    }
+
+    // This is essentially just a much faster version of
+    // `check_for_conflicts(possibility.word).is_empty()`
     pub fn matches(&self, possibility: &PossibleAnswer) -> bool {
         let slots_match = std::iter::zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l));
         let needs_match = possibility.histogram.contains_other(self.histogram);
         slots_match && needs_match
-    }
-
-    pub fn matches_word(&self, word: Word) -> bool {
-        self.matches(&PossibleAnswer::from_word(word))
     }
 
     pub fn formatted(&self) -> String {
@@ -174,5 +197,58 @@ impl WordKnowledge {
                 _ => letter_to_string(letter),
             })
             .join("")
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Conflict {
+    MustBe(usize, Letter),
+    CannotBe(usize, Letter),
+    Missing(Letter, usize),
+}
+
+impl Conflict {
+    pub fn as_text(self) -> String {
+        match self {
+            Self::MustBe(i, letter) => format!(
+                "The {} letter must be {}.",
+                index_to_ordinal(i),
+                add_indefinite_article_to_letter(letter)
+            ),
+            Self::CannotBe(i, letter) => format!(
+                "The {} letter cannot be {}.",
+                index_to_ordinal(i),
+                add_indefinite_article_to_letter(letter)
+            ),
+            Self::Missing(letter, needed) => {
+                if needed == 1 {
+                    format!(
+                        "The word must contain {}.",
+                        add_indefinite_article_to_letter(letter)
+                    )
+                } else {
+                    format!("The word must contain {needed} {}'s.", letter as char)
+                }
+            }
+        }
+    }
+}
+
+fn index_to_ordinal(index: usize) -> &'static str {
+    match index {
+        0 => "first",
+        1 => "second",
+        2 => "third",
+        3 => "fourth",
+        4 => "fifth",
+        _ => panic!("Wordle letter indexes never get bigger than 4!"),
+    }
+}
+
+fn add_indefinite_article_to_letter(letter: Letter) -> String {
+    let c = letter as char;
+    match c {
+        'A' | 'E' | 'F' | 'H' | 'I' | 'L' | 'M' | 'N' | 'O' | 'R' | 'S' | 'X' => format!("an {c}"),
+        _ => format!("a {c}"),
     }
 }

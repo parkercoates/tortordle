@@ -220,8 +220,12 @@ fn main() -> ExitCode {
             break;
         }
 
-        if !knowledge.matches_word(guess) {
-            println_note("This guess conflicted with previously collected information!");
+        let conflicts = knowledge.check_for_conflicts(guess);
+        if !conflicts.is_empty() {
+            println_note("This guess conflicts with previously collected information:");
+            for conflict in conflicts {
+                println_note(&format!("    {}", &conflict.as_text()));
+            }
         } else if !possibilities.iter().any(|a| a.word == guess) {
             println_note("This guess was not in the list of remaining possibilities!");
         }
