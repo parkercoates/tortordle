@@ -1,6 +1,6 @@
 use partial_sort::PartialSort;
 use rayon::prelude::*;
-use std::cmp::Ordering;
+use std::cmp::{min, Ordering};
 use std::fmt;
 
 use crate::colored_guess::color_guess;
@@ -12,6 +12,9 @@ use crate::word::Word;
 pub struct Hundredths(i32);
 
 impl Hundredths {
+    fn zero() -> Self {
+        Self(0)
+    }
     fn from_div(numerator: usize, denominator: usize) -> Self {
         Self(((100.0 * numerator as f64) / denominator as f64).round() as i32)
     }
@@ -52,35 +55,49 @@ pub struct ScoredGuess {
     pub word: Word,
 }
 
-fn score_guess(guess: Word, possibilities: &[PossibleAnswer]) -> ScoredGuess {
+impl ScoredGuess {
+    fn init_with_word(word: Word) -> Self {
+        Self {
+            word,
+            rank: 0,
+            score: Score {
+                remaining_words: Hundredths::zero(),
+                green_yellow_count: Hundredths::zero(),
+                green_count: Hundredths::zero(),
+            },
+        }
+    }
+}
+
+fn compute_avg_color_counts(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
     let mut green_count: usize = 0;
     let mut green_yellow_count: usize = 0;
-    let mut remaining_count: usize = 0;
     for answer in possibilities {
-        let colored_guess = color_guess(guess, answer.word);
-        let knowledge = WordKnowledge::from_guess(&colored_guess);
-
+        let colored_guess = color_guess(scored_guess.word, answer.word);
         green_count += colored_guess.green_count();
         green_yellow_count += colored_guess.green_yellow_count();
-        if answer.word != guess {
+    }
+    scored_guess.score.green_count = Hundredths::from_div(green_count, possibilities.len());
+    scored_guess.score.green_yellow_count =
+        Hundredths::from_div(green_yellow_count, possibilities.len());
+}
+
+fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
+    let mut remaining_count: usize = 0;
+    for answer in possibilities {
+        if answer.word != scored_guess.word {
+            let colored_guess = color_guess(scored_guess.word, answer.word);
+            let knowledge = WordKnowledge::from_guess(&colored_guess);
             remaining_count += possibilities
                 .iter()
                 .filter(|pos| knowledge.matches(pos))
                 .count();
         }
     }
-    ScoredGuess {
-        word: guess,
-        rank: 0,
-        score: Score {
-            green_count: Hundredths::from_div(green_count, possibilities.len()),
-            green_yellow_count: Hundredths::from_div(green_yellow_count, possibilities.len()),
-            remaining_words: Hundredths::from_div(remaining_count, possibilities.len()),
-        },
-    }
+    scored_guess.score.remaining_words = Hundredths::from_div(remaining_count, possibilities.len());
 }
 
-fn set_ranks(guesses: &mut Vec<ScoredGuess>) {
+fn compute_ranks(guesses: &mut [ScoredGuess]) {
     let mut it = guesses.iter_mut();
     if let Some(first) = it.next() {
         let mut count = 1usize;
@@ -99,17 +116,49 @@ fn set_ranks(guesses: &mut Vec<ScoredGuess>) {
     }
 }
 
+fn keep_top<T, F>(v: &mut Vec<T>, count: usize, cmp: F)
+where
+    F: FnMut(&T, &T) -> Ordering,
+{
+    let count = min(count, v.len());
+    v.partial_sort(count, cmp);
+    v.truncate(count);
+}
+
+fn keep_top_scores(scores: &mut Vec<ScoredGuess>, count: usize) {
+    keep_top(scores, count, ScoredGuess::cmp);
+}
+
 pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredGuess> {
-    let count = std::cmp::min(count, possibilities.len());
-    let mut rankings = Vec::<ScoredGuess>::with_capacity(possibilities.len());
+    const TO_KEEP_FROM_COLOR_COUNT: usize = 100;
 
-    possibilities
-        .par_iter()
-        .map(|guess| score_guess(guess.word, possibilities))
-        .collect_into_vec(&mut rankings);
+    // Turn all possibilities into ScoredGuesses, but don't compute any scores
+    // yet.
+    let mut scores: Vec<ScoredGuess> = possibilities
+        .iter()
+        .map(|p| ScoredGuess::init_with_word(p.word))
+        .collect();
 
-    rankings.partial_sort(count, ScoredGuess::cmp);
-    rankings.truncate(count);
-    set_ranks(&mut rankings);
-    rankings
+    // Compute the average green and yellow counts first as this can be done
+    // very quickly and is a good rough indicator of the quality of a guess.
+    scores
+        .par_iter_mut()
+        .for_each(|scored| compute_avg_color_counts(scored, possibilities));
+
+    // Keep just the top `TO_KEEP_FROM_COLOR_COUNT` guesses.
+    keep_top_scores(&mut scores, TO_KEEP_FROM_COLOR_COUNT);
+
+    // Calculate the average remaining word count for the remaining guesses.
+    // This is a considerably more expensive calculation.
+    scores
+        .par_iter_mut()
+        .for_each(|scored| compute_avg_remaining_words(scored, possibilities));
+
+    // Keep just the top `count` guesses.
+    keep_top_scores(&mut scores, count);
+
+    // Assign ranks to the guesses, detecting any ties.
+    compute_ranks(&mut scores);
+
+    scores
 }
