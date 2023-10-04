@@ -224,6 +224,16 @@ fn main() -> ExitCode {
     let guesses = words;
 
     let mut possibilities = all_possible_answers();
+    let known_answer = possibilities.iter().filter(|a| a.word == answer).count() == 1;
+    if !known_answer {
+        println!();
+        println_note(&format!(
+            "{} is not in the list of known potential answers.",
+            letters_to_string(&answer)
+        ));
+        println_note("That shouldn't happen. Analysis is unlikely to go well.");
+    }
+
     let mut knowledge = WordKnowledge::new();
 
     let term_width = terminal_size().map_or(80, |(w, _h)| w.0 as usize);
