@@ -162,3 +162,14 @@ pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<Score
 
     scores
 }
+
+fn top_guesses(possibilities: &[PossibleAnswer]) -> Vec<ScoredGuess> {
+    const WIDEST_TIE_TO_WORRY_ABOUT: usize = 10;
+    let mut guesses = best_guesses(possibilities, WIDEST_TIE_TO_WORRY_ABOUT);
+    guesses.retain(|g| g.rank == 1);
+    guesses
+}
+
+pub fn rand_top_guess(possibilities: &[PossibleAnswer]) -> Option<Word> {
+    fastrand::choice(top_guesses(possibilities)).map(|g| g.word)
+}

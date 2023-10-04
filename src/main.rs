@@ -5,8 +5,9 @@ mod knowledge;
 mod possibilities;
 mod word;
 
-use colored_guess::color_guess;
-use guess_suggestions::{best_guesses, Hundredths, ScoredGuess};
+use colored_guess::{color_guess, ColoredGuess};
+use guess_suggestions::{best_guesses, rand_top_guess, Hundredths, ScoredGuess};
+use itertools::Itertools;
 use knowledge::WordKnowledge;
 use possibilities::{all_possible_answers, PossibleAnswer};
 use terminal_size::terminal_size;
@@ -34,8 +35,12 @@ fn println_label_value(text: &str, value: &str) {
 }
 
 fn println_note(text: &str) {
-    print_indent();
     println!("{}", &str_with_fg(text, Color::Magenta),);
+}
+
+fn println_indented_note(text: &str) {
+    print_indent();
+    println_note(text);
 }
 
 struct CmdArgs {
@@ -116,7 +121,7 @@ fn print_remaining_words(
     columns: usize,
 ) {
     match possibilities.len() {
-        0 => println_note("There are no words remaining! Something went wrong!"),
+        0 => println_indented_note("There are no words remaining! Something went wrong!"),
         1 => println_label_value(
             "1 word remains",
             &knowledge.format_word(possibilities[0].word),
@@ -171,6 +176,28 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
     }
 }
 
+pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
+    const STARTING_GUESS: Word = [b'R', b'A', b'I', b'S', b'E'];
+    let mut guess = STARTING_GUESS;
+    let mut knowledge = WordKnowledge::new();
+    let mut possibilities = all_possible_answers();
+    let mut result = Vec::<ColoredGuess>::new();
+    loop {
+        let colored = color_guess(guess, answer);
+        knowledge.add_guess(&colored);
+        result.push(colored);
+        if guess == answer {
+            break;
+        }
+        possibilities.retain(|p| knowledge.matches(p));
+        // In the case of ties, we take a random option from the tie, since that
+        // feels nicer than always just taking the first alphabetically. This
+        // means the output isn't always deterministic.
+        guess = rand_top_guess(&possibilities)?;
+    }
+    Some(result)
+}
+
 fn main() -> ExitCode {
     let cmd_args = match process_args(std::env::args()) {
         Err(msg) => {
@@ -222,12 +249,12 @@ fn main() -> ExitCode {
 
         let conflicts = knowledge.check_for_conflicts(guess);
         if !conflicts.is_empty() {
-            println_note("This guess conflicts with previously collected information:");
+            println_indented_note("This guess conflicts with previously collected information:");
             for conflict in conflicts {
-                println_note(&format!("    {}", &conflict.as_text()));
+                println_indented_note(&format!("    {}", &conflict.as_text()));
             }
         } else if !possibilities.iter().any(|a| a.word == guess) {
-            println_note("This guess was not in the list of remaining possibilities!");
+            println_indented_note("This guess was not in the list of remaining possibilities!");
         }
 
         knowledge.add_guess(&colored_guess);
@@ -241,6 +268,23 @@ fn main() -> ExitCode {
 
     if failed {
         println_label_value("Solution", &letters_with_bg(&answer, Color::Green));
+    }
+
+    // Let the algorithm attempt solve it itself.
+    println!();
+    print_label("My Best Attempt");
+    if let Some(guesses) = attempt_optimal_solve(answer) {
+        println!(
+            "{}",
+            &guesses.iter().map(ColoredGuess::formatted).join(" -> "),
+        );
+        if MAX_GUESSES < guesses.len() {
+            println_indented_note("I failed.")
+        }
+    } else {
+        println_note(
+            "Something went wrong while attempting to find an optimal solution to the puzzle.",
+        );
     }
 
     ExitCode::SUCCESS
