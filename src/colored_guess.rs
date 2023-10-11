@@ -1,4 +1,4 @@
-use crate::data_structures::LetterHistogram;
+use crate::data_structures::Alphagram;
 use crate::word::{letter_with_bg, Letter, Word, WORD_LENGTH};
 
 use colored::Color;
@@ -51,7 +51,7 @@ impl ColoredGuess {
 
 pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
     let mut slots = [(b' ', GuessColor::Black); WORD_LENGTH];
-    let mut yellows = LetterHistogram::new();
+    let mut yellows = Alphagram::new();
     for (guess_letter, answer_letter, (letter, state)) in
         itertools::izip!(guess, answer, &mut slots)
     {

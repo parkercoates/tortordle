@@ -1,16 +1,16 @@
-use crate::data_structures::LetterHistogram;
+use crate::data_structures::Alphagram;
 use crate::word::{Letter, Word, WORD_LENGTH};
 
 pub struct PossibleAnswer {
     pub word: Word,
-    pub histogram: LetterHistogram,
+    pub alphagram: Alphagram,
 }
 
 impl PossibleAnswer {
     pub fn from_word(word: Word) -> Self {
         Self {
             word,
-            histogram: LetterHistogram::from_word(word),
+            alphagram: Alphagram::from_word(word),
         }
     }
 }

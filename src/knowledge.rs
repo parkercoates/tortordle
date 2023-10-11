@@ -1,5 +1,5 @@
 use crate::colored_guess::{ColoredGuess, GuessColor};
-use crate::data_structures::{LetterHistogram, LetterSet};
+use crate::data_structures::{Alphagram, LetterSet};
 use crate::possibilities::PossibleAnswer;
 use crate::word::*;
 
@@ -24,7 +24,7 @@ impl LetterKnowledge {
         }
     }
 
-    fn formatted(self, yellows: LetterHistogram) -> String {
+    fn formatted(self, yellows: Alphagram) -> String {
         match self {
             Self::Is(letter) => letter_with_fg(letter, Color::Green),
             Self::IsNot(set) => {
@@ -46,16 +46,16 @@ impl LetterKnowledge {
 
 pub struct WordKnowledge {
     slots: [LetterKnowledge; WORD_LENGTH],
-    histogram: LetterHistogram,
-    yellows: LetterHistogram,
+    letters: Alphagram,
+    yellows: Alphagram,
 }
 
 impl WordKnowledge {
     pub const fn new() -> Self {
         Self {
             slots: [LetterKnowledge::IsNot(LetterSet::new()); 5],
-            histogram: LetterHistogram::new(),
-            yellows: LetterHistogram::new(),
+            letters: Alphagram::new(),
+            yellows: Alphagram::new(),
         }
     }
 
@@ -67,17 +67,17 @@ impl WordKnowledge {
 
     pub fn add_guess(&mut self, guess: &ColoredGuess) {
         // First we add information from the guess into the existing slots and
-        // build up new all-letter and yellow-letter histograms for this guess.
-        let mut new_histogram = LetterHistogram::new();
-        let mut new_yellows = LetterHistogram::new();
+        // build up new all-letter and yellow-letter alphagrams for this guess.
+        let mut new_letters = Alphagram::new();
+        let mut new_yellows = Alphagram::new();
         for (i, (letter, color)) in guess.iter().enumerate() {
             match color {
                 GuessColor::Green => {
-                    new_histogram.add_letter(*letter);
+                    new_letters.add_letter(*letter);
                     self.slots[i].set_letter(*letter);
                 }
                 GuessColor::Yellow => {
-                    new_histogram.add_letter(*letter);
+                    new_letters.add_letter(*letter);
                     new_yellows.add_letter(*letter);
                     self.slots[i].remove_letter(*letter);
                 }
@@ -96,22 +96,22 @@ impl WordKnowledge {
             }
         }
 
-        // Second, we get the new all-letter histogram by merging the previous
-        // histogram with the histogram for this guess, taking the higher count
+        // Second, we get the new all-letter alphagram by merging the previous
+        // alphagram with the alphagram for this guess, taking the higher count
         // of the two for each letter.
         //
-        // Note that we can't just use `histogram` because of non-hard mode
-        // players. `histogram` may be missing letters from previous guesses.
-        self.histogram.merge_via_max(new_histogram);
+        // Note that we can't just use `new_letters` because of non-hard mode
+        // players. `new_letters` may be missing letters from previous guesses.
+        self.letters.merge_via_max(new_letters);
 
         // Third, we compute the new set of yellows by starting with the new
-        // all letter histogram and removing all the greens.
+        // all-letter alphagram and removing all the greens.
         //
         // Note that we can't just use `new_yellows` because of non-hard mode
         // players. The new guess could conflict with previous guesses, meaning
         // `new_yellows` could contain letters that were green in previous
         // guesses or be missing yellow letters from previous guesses.
-        self.yellows = self.histogram;
+        self.yellows = self.letters;
         for slot in &self.slots {
             if let LetterKnowledge::Is(letter) = slot {
                 self.yellows.remove_letter(*letter);
@@ -173,7 +173,7 @@ impl WordKnowledge {
     // `check_for_conflicts(possibility.word).is_empty()`
     pub fn matches(&self, possibility: &PossibleAnswer) -> bool {
         let slots_match = std::iter::zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l));
-        let needs_match = possibility.histogram.contains_other(self.histogram);
+        let needs_match = possibility.alphagram.contains_other(self.letters);
         slots_match && needs_match
     }
 

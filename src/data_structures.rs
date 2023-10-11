@@ -25,12 +25,17 @@ impl LetterSet {
     }
 }
 
+// An alphagram is the set of letters, listed in alphabetical order. The term is
+// taken from competitive Scrabble, where it is the most common way of racking
+// one's tiles. Apparently alphagrams are also used in memorising the Scrabble
+// word list.
+
 #[derive(Clone, Copy)]
-pub struct LetterHistogram {
+pub struct Alphagram {
     slots: [Letter; WORD_LENGTH],
 }
 
-impl LetterHistogram {
+impl Alphagram {
     // This value is specifically chosen to be larger than b'Z'.
     const NO_DATA: Letter = b'_';
 
@@ -41,11 +46,11 @@ impl LetterHistogram {
     }
 
     pub fn from_word(word: Word) -> Self {
-        let mut histogram = Self::new();
+        let mut alphagram = Self::new();
         for letter in word {
-            histogram.add_letter(letter);
+            alphagram.add_letter(letter);
         }
-        histogram
+        alphagram
     }
 
     pub fn add_letter(&mut self, mut letter: Letter) {
