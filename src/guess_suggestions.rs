@@ -15,8 +15,11 @@ impl Hundredths {
     fn zero() -> Self {
         Self(0)
     }
+    fn from_f64(f: f64) -> Self {
+        Self((100.0 * f).round() as i32)
+    }
     fn from_div(numerator: usize, denominator: usize) -> Self {
-        Self(((100.0 * numerator as f64) / denominator as f64).round() as i32)
+        Self::from_f64((numerator as f64) / denominator as f64)
     }
 }
 
@@ -28,6 +31,7 @@ impl fmt::Display for Hundredths {
 
 #[derive(PartialEq, Eq)]
 pub struct Score {
+    pub avg_remaining_guesses: Hundredths,
     pub remaining_words: Hundredths,
     pub green_yellow_count: Hundredths,
     pub green_count: Hundredths,
@@ -35,8 +39,9 @@ pub struct Score {
 
 impl Ord for Score {
     fn cmp(&self, o: &Self) -> Ordering {
-        self.remaining_words
-            .cmp(&o.remaining_words)
+        self.avg_remaining_guesses
+            .cmp(&o.avg_remaining_guesses)
+            .then(self.remaining_words.cmp(&o.remaining_words))
             .then(self.green_yellow_count.cmp(&o.green_yellow_count).reverse())
             .then(self.green_count.cmp(&o.green_count).reverse())
     }
@@ -61,6 +66,7 @@ impl ScoredGuess {
             word,
             rank: 0,
             score: Score {
+                avg_remaining_guesses: Hundredths::zero(),
                 remaining_words: Hundredths::zero(),
                 green_yellow_count: Hundredths::zero(),
                 green_count: Hundredths::zero(),
@@ -97,6 +103,54 @@ fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[
     scored_guess.score.remaining_words = Hundredths::from_div(remaining_count, possibilities.len());
 }
 
+fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
+    fn best_guesses_by_color_counts(
+        possibilities: &[PossibleAnswer],
+        count: usize,
+    ) -> Vec<ScoredGuess> {
+        let mut scores: Vec<ScoredGuess> = possibilities
+            .par_iter()
+            .map(|p| {
+                let mut scored = ScoredGuess::init_with_word(p.word);
+                compute_avg_color_counts(&mut scored, possibilities);
+                scored
+            })
+            .collect();
+        keep_top_scores(&mut scores, count);
+        scores
+    }
+
+    fn avg_remaining_guesses(guess: Word, possibilities: &[PossibleAnswer]) -> f64 {
+        if possibilities.len() == 1 {
+            1.0
+        } else {
+            let mut total_score = 0f64;
+            for answer in possibilities {
+                if answer.word == guess {
+                    total_score += 1.0;
+                } else {
+                    let colored_guess = color_guess(guess, answer.word);
+                    let knowledge = WordKnowledge::from_guess(&colored_guess);
+                    let mut possibilities = possibilities.to_vec();
+                    possibilities.retain(|a| knowledge.matches(a));
+                    let next_guesses = best_guesses_by_color_counts(&possibilities, 3);
+                    let mut guess_total_score = 0f64;
+                    for next_guess in &next_guesses {
+                        guess_total_score += avg_remaining_guesses(next_guess.word, &possibilities);
+                    }
+                    if !next_guesses.is_empty() {
+                        total_score += 1.0 + guess_total_score / next_guesses.len() as f64
+                    }
+                }
+            }
+            total_score / possibilities.len() as f64
+        }
+    }
+
+    scored_guess.score.avg_remaining_guesses =
+        Hundredths::from_f64(avg_remaining_guesses(scored_guess.word, possibilities));
+}
+
 fn compute_ranks(guesses: &mut [ScoredGuess]) {
     let mut it = guesses.iter_mut();
     if let Some(first) = it.next() {
@@ -131,6 +185,7 @@ fn keep_top_scores(scores: &mut Vec<ScoredGuess>, count: usize) {
 
 pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredGuess> {
     const TO_KEEP_FROM_COLOR_COUNT: usize = 100;
+    const TO_KEEP_FROM_REMAINING_WORDS: usize = 32;
 
     // Turn all possibilities into ScoredGuesses, but don't compute any scores
     // yet.
@@ -153,6 +208,13 @@ pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<Score
     scores
         .par_iter_mut()
         .for_each(|scored| compute_avg_remaining_words(scored, possibilities));
+
+    // Keep just the top `TO_KEEP_FROM_REMAINING_WORDS` guesses.
+    keep_top_scores(&mut scores, TO_KEEP_FROM_REMAINING_WORDS);
+
+    scores
+        .par_iter_mut()
+        .for_each(|scored| compute_avg_remaining_guesses(scored, possibilities));
 
     // Keep just the top `count` guesses.
     keep_top_scores(&mut scores, count);

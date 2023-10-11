@@ -169,6 +169,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
             println!();
         };
 
+        print_numbers("Avg Guesses to Win", |s| s.score.avg_remaining_guesses);
         print_numbers("Avg Remaining Words", |s| s.score.remaining_words);
         print_numbers("Avg Green/Yellow Count", |s| s.score.green_yellow_count);
         print_numbers("Avg Green Count", |s| s.score.green_count);
