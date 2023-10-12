@@ -47,6 +47,16 @@ impl ColoredGuess {
             .filter(|(_, state)| *state != GuessColor::Black)
             .count()
     }
+
+    pub fn weighted_green_yellow_count(&self) -> usize {
+        self.iter()
+            .map(|(_, state)| match state {
+                GuessColor::Black => 0,
+                GuessColor::Yellow => 74,
+                GuessColor::Green => 100,
+            })
+            .sum()
+    }
 }
 
 pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {

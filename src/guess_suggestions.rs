@@ -33,6 +33,7 @@ impl fmt::Display for Hundredths {
 pub struct Score {
     pub avg_remaining_guesses: Hundredths,
     pub remaining_words: Hundredths,
+    pub weighted_green_yellow_count: Hundredths,
     pub green_yellow_count: Hundredths,
     pub green_count: Hundredths,
 }
@@ -42,8 +43,11 @@ impl Ord for Score {
         self.avg_remaining_guesses
             .cmp(&o.avg_remaining_guesses)
             .then(self.remaining_words.cmp(&o.remaining_words))
-            .then(self.green_yellow_count.cmp(&o.green_yellow_count).reverse())
-            .then(self.green_count.cmp(&o.green_count).reverse())
+            .then(
+                self.weighted_green_yellow_count
+                    .cmp(&o.weighted_green_yellow_count)
+                    .reverse(),
+            )
     }
 }
 
@@ -68,6 +72,7 @@ impl ScoredGuess {
             score: Score {
                 avg_remaining_guesses: Hundredths::zero(),
                 remaining_words: Hundredths::zero(),
+                weighted_green_yellow_count: Hundredths::zero(),
                 green_yellow_count: Hundredths::zero(),
                 green_count: Hundredths::zero(),
             },
@@ -78,14 +83,18 @@ impl ScoredGuess {
 fn compute_avg_color_counts(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
     let mut green_count: usize = 0;
     let mut green_yellow_count: usize = 0;
+    let mut weighted_green_yellow_count: usize = 0;
     for answer in possibilities {
         let colored_guess = color_guess(scored_guess.word, answer.word);
         green_count += colored_guess.green_count();
         green_yellow_count += colored_guess.green_yellow_count();
+        weighted_green_yellow_count += colored_guess.weighted_green_yellow_count();
     }
     scored_guess.score.green_count = Hundredths::from_div(green_count, possibilities.len());
     scored_guess.score.green_yellow_count =
         Hundredths::from_div(green_yellow_count, possibilities.len());
+    scored_guess.score.weighted_green_yellow_count =
+        Hundredths::from_div(weighted_green_yellow_count, possibilities.len() * 100)
 }
 
 fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
