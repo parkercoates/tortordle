@@ -12,11 +12,13 @@ use crate::word::Word;
 pub struct Hundredths(i32);
 
 impl Hundredths {
+    pub const DECIMAL_PLACES: usize = 2;
+    const DENOMINATOR: f64 = 10u32.pow(Self::DECIMAL_PLACES as u32) as f64;
     fn zero() -> Self {
         Self(0)
     }
     fn from_f64(f: f64) -> Self {
-        Self((100.0 * f).round() as i32)
+        Self((Self::DENOMINATOR * f).round() as i32)
     }
     fn from_div(numerator: usize, denominator: usize) -> Self {
         Self::from_f64((numerator as f64) / denominator as f64)
@@ -25,7 +27,7 @@ impl Hundredths {
 
 impl fmt::Display for Hundredths {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        (self.0 as f64 / 100.0).fmt(f)
+        (self.0 as f64 / Self::DENOMINATOR).fmt(f)
     }
 }
 

@@ -164,7 +164,11 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
         let print_numbers = |label, getter: fn(&ScoredGuess) -> Hundredths| {
             print_label(label);
             for suggestion in suggestions {
-                print!("{:>COLUMN_WIDTH$.2} ", getter(suggestion));
+                print!(
+                    "{:^COLUMN_WIDTH$.*} ",
+                    Hundredths::DECIMAL_PLACES,
+                    getter(suggestion)
+                );
             }
             println!();
         };
