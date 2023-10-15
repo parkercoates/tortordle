@@ -9,9 +9,9 @@ use crate::possibilities::PossibleAnswer;
 use crate::word::Word;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Hundredths(i32);
+pub struct Points(i32);
 
-impl Hundredths {
+impl Points {
     pub const DECIMAL_PLACES: usize = 2;
     const DENOMINATOR: f64 = 10u32.pow(Self::DECIMAL_PLACES as u32) as f64;
     fn zero() -> Self {
@@ -25,7 +25,7 @@ impl Hundredths {
     }
 }
 
-impl fmt::Display for Hundredths {
+impl fmt::Display for Points {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         (self.0 as f64 / Self::DENOMINATOR).fmt(f)
     }
@@ -33,11 +33,11 @@ impl fmt::Display for Hundredths {
 
 #[derive(PartialEq, Eq)]
 pub struct Score {
-    pub avg_remaining_guesses: Hundredths,
-    pub remaining_words: Hundredths,
-    pub weighted_green_yellow_count: Hundredths,
-    pub green_yellow_count: Hundredths,
-    pub green_count: Hundredths,
+    pub avg_remaining_guesses: Points,
+    pub remaining_words: Points,
+    pub weighted_green_yellow_count: Points,
+    pub green_yellow_count: Points,
+    pub green_count: Points,
 }
 
 impl Ord for Score {
@@ -72,11 +72,11 @@ impl ScoredGuess {
             word,
             rank: 0,
             score: Score {
-                avg_remaining_guesses: Hundredths::zero(),
-                remaining_words: Hundredths::zero(),
-                weighted_green_yellow_count: Hundredths::zero(),
-                green_yellow_count: Hundredths::zero(),
-                green_count: Hundredths::zero(),
+                avg_remaining_guesses: Points::zero(),
+                remaining_words: Points::zero(),
+                weighted_green_yellow_count: Points::zero(),
+                green_yellow_count: Points::zero(),
+                green_count: Points::zero(),
             },
         }
     }
@@ -92,11 +92,11 @@ fn compute_avg_color_counts(scored_guess: &mut ScoredGuess, possibilities: &[Pos
         green_yellow_count += colored_guess.green_yellow_count();
         weighted_green_yellow_count += colored_guess.weighted_green_yellow_count();
     }
-    scored_guess.score.green_count = Hundredths::from_div(green_count, possibilities.len());
+    scored_guess.score.green_count = Points::from_div(green_count, possibilities.len());
     scored_guess.score.green_yellow_count =
-        Hundredths::from_div(green_yellow_count, possibilities.len());
+        Points::from_div(green_yellow_count, possibilities.len());
     scored_guess.score.weighted_green_yellow_count =
-        Hundredths::from_div(weighted_green_yellow_count, possibilities.len() * 100)
+        Points::from_div(weighted_green_yellow_count, possibilities.len() * 100)
 }
 
 fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
@@ -111,7 +111,7 @@ fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[
                 .count();
         }
     }
-    scored_guess.score.remaining_words = Hundredths::from_div(remaining_count, possibilities.len());
+    scored_guess.score.remaining_words = Points::from_div(remaining_count, possibilities.len());
 }
 
 fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
@@ -159,7 +159,7 @@ fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: 
     }
 
     scored_guess.score.avg_remaining_guesses =
-        Hundredths::from_f64(avg_remaining_guesses(scored_guess.word, possibilities));
+        Points::from_f64(avg_remaining_guesses(scored_guess.word, possibilities));
 }
 
 fn compute_ranks(guesses: &mut [ScoredGuess]) {

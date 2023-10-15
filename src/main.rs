@@ -6,7 +6,7 @@ mod possibilities;
 mod word;
 
 use colored_guess::{color_guess, ColoredGuess};
-use guess_suggestions::{best_guesses, rand_top_guess, Hundredths, ScoredGuess};
+use guess_suggestions::{best_guesses, rand_top_guess, Points, ScoredGuess};
 use itertools::Itertools;
 use knowledge::WordKnowledge;
 use possibilities::{all_possible_answers, PossibleAnswer};
@@ -161,12 +161,12 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
         }
         println!();
 
-        let print_numbers = |label, getter: fn(&ScoredGuess) -> Hundredths| {
+        let print_numbers = |label, getter: fn(&ScoredGuess) -> Points| {
             print_label(label);
             for suggestion in suggestions {
                 print!(
                     "{:^COLUMN_WIDTH$.*} ",
-                    Hundredths::DECIMAL_PLACES,
+                    Points::DECIMAL_PLACES,
                     getter(suggestion)
                 );
             }
