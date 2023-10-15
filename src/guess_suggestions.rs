@@ -12,7 +12,7 @@ use crate::word::Word;
 pub struct Points(i32);
 
 impl Points {
-    pub const DECIMAL_PLACES: usize = 2;
+    pub const DECIMAL_PLACES: usize = 1;
     const DENOMINATOR: f64 = 10u32.pow(Self::DECIMAL_PLACES as u32) as f64;
     fn zero() -> Self {
         Self(0)
