@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use partial_sort::PartialSort;
 use rayon::prelude::*;
 use std::cmp::{min, Ordering};
@@ -96,7 +97,7 @@ fn compute_avg_color_counts(scored_guess: &mut ScoredGuess, possibilities: &[Pos
     scored_guess.score.green_yellow_count =
         Points::from_div(green_yellow_count, possibilities.len());
     scored_guess.score.weighted_green_yellow_count =
-        Points::from_div(weighted_green_yellow_count, possibilities.len() * 100)
+        Points::from_div(weighted_green_yellow_count, possibilities.len() * 100);
 }
 
 fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
@@ -115,20 +116,47 @@ fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[
 }
 
 fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
+    const MAX_GUESSES_TO_TRY: usize = 3;
+
     fn best_guesses_by_color_counts(
         possibilities: &[PossibleAnswer],
-        count: usize,
-    ) -> Vec<ScoredGuess> {
-        let mut scores: Vec<ScoredGuess> = possibilities
-            .par_iter()
-            .map(|p| {
-                let mut scored = ScoredGuess::init_with_word(p.word);
-                compute_avg_color_counts(&mut scored, possibilities);
-                scored
-            })
-            .collect();
-        keep_top_scores(&mut scores, count);
-        scores
+    ) -> ArrayVec<(Word, usize), MAX_GUESSES_TO_TRY> {
+        let score = |p: &PossibleAnswer| {
+            possibilities
+                .iter()
+                .map(|answer| color_guess(p.word, answer.word).weighted_green_yellow_count())
+                .sum()
+        };
+
+        // We use an ArrayVec to avoid the need to allocate at all
+        let mut best_guesses = ArrayVec::<(Word, usize), MAX_GUESSES_TO_TRY>::new();
+        let mut it = possibilities.iter();
+
+        // First fill the ArrayVec until full, returning early if we don't have
+        // enough guesses.
+        for _ in [..MAX_GUESSES_TO_TRY] {
+            if let Some(p) = it.next() {
+                best_guesses.push((p.word, score(p)));
+            } else {
+                return best_guesses;
+            }
+        }
+
+        // Then replace old values with better ones as we find them.
+        //
+        // Note that we are not sorting the output at all; all of the results
+        // will be used and averaged, so we don't care about the order. Just
+        // that we get the best MAX_GUESSES_TO_TRY.
+        for p in it {
+            let score = score(p);
+            for best in &mut best_guesses {
+                if best.1 < score {
+                    *best = (p.word, score);
+                    break;
+                }
+            }
+        }
+        best_guesses
     }
 
     fn avg_remaining_guesses(guess: Word, possibilities: &[PossibleAnswer]) -> f64 {
@@ -142,15 +170,15 @@ fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: 
                 } else {
                     let colored_guess = color_guess(guess, answer.word);
                     let knowledge = WordKnowledge::from_guess(&colored_guess);
-                    let mut possibilities = possibilities.to_vec();
-                    possibilities.retain(|a| knowledge.matches(a));
-                    let next_guesses = best_guesses_by_color_counts(&possibilities, 3);
+                    let mut new_possibilities = possibilities.to_vec();
+                    new_possibilities.retain(|a| knowledge.matches(a));
+                    let next_guesses = best_guesses_by_color_counts(&new_possibilities);
                     let mut guess_total_score = 0f64;
-                    for next_guess in &next_guesses {
-                        guess_total_score += avg_remaining_guesses(next_guess.word, &possibilities);
+                    for (next_guess, _) in &next_guesses {
+                        guess_total_score += avg_remaining_guesses(*next_guess, &new_possibilities);
                     }
                     if !next_guesses.is_empty() {
-                        total_score += 1.0 + guess_total_score / next_guesses.len() as f64
+                        total_score += 1.0 + guess_total_score / next_guesses.len() as f64;
                     }
                 }
             }
