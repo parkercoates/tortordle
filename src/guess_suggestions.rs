@@ -7,6 +7,7 @@ use std::fmt;
 use crate::colored_guess::color_guess;
 use crate::knowledge::WordKnowledge;
 use crate::possibilities::PossibleAnswer;
+use crate::slice_subset::SliceSubset;
 use crate::word::Word;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -15,7 +16,7 @@ pub struct Points(i32);
 impl Points {
     pub const DECIMAL_PLACES: usize = 1;
     const DENOMINATOR: f64 = 10u32.pow(Self::DECIMAL_PLACES as u32) as f64;
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Self(0)
     }
     fn from_f64(f: f64) -> Self {
@@ -115,11 +116,14 @@ fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[
     scored_guess.score.remaining_words = Points::from_div(remaining_count, possibilities.len());
 }
 
-fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: &[PossibleAnswer]) {
+fn compute_avg_remaining_guesses(
+    scored_guess: &mut ScoredGuess,
+    possibilities: &SliceSubset<PossibleAnswer>,
+) {
     const MAX_GUESSES_TO_TRY: usize = 3;
 
     fn best_guesses_by_color_counts(
-        possibilities: &[PossibleAnswer],
+        possibilities: &SliceSubset<PossibleAnswer>,
     ) -> ArrayVec<(Word, usize), MAX_GUESSES_TO_TRY> {
         let score = |p: &PossibleAnswer| {
             possibilities
@@ -159,31 +163,28 @@ fn compute_avg_remaining_guesses(scored_guess: &mut ScoredGuess, possibilities: 
         best_guesses
     }
 
-    fn avg_remaining_guesses(guess: Word, possibilities: &[PossibleAnswer]) -> f64 {
-        if possibilities.len() == 1 {
-            1.0
-        } else {
-            let mut total_score = 0f64;
-            for answer in possibilities {
-                if answer.word == guess {
-                    total_score += 1.0;
+    fn avg_remaining_guesses(guess: Word, possibilities: &SliceSubset<PossibleAnswer>) -> f64 {
+        let mut total_guesses = 0f64;
+        for answer in possibilities {
+            if answer.word != guess {
+                let colored_guess = color_guess(guess, answer.word);
+                let knowledge = WordKnowledge::from_guess(&colored_guess);
+                let new_possibilities = possibilities.retained(|a| knowledge.matches(a));
+                if new_possibilities.len() <= 1 {
+                    total_guesses += 1.0;
                 } else {
-                    let colored_guess = color_guess(guess, answer.word);
-                    let knowledge = WordKnowledge::from_guess(&colored_guess);
-                    let mut new_possibilities = possibilities.to_vec();
-                    new_possibilities.retain(|a| knowledge.matches(a));
                     let next_guesses = best_guesses_by_color_counts(&new_possibilities);
-                    let mut guess_total_score = 0f64;
-                    for (next_guess, _) in &next_guesses {
-                        guess_total_score += avg_remaining_guesses(*next_guess, &new_possibilities);
-                    }
-                    if !next_guesses.is_empty() {
-                        total_score += 1.0 + guess_total_score / next_guesses.len() as f64;
-                    }
+                    let total_next_guesses: f64 = next_guesses
+                        .iter()
+                        .map(|(next_guess, _)| {
+                            avg_remaining_guesses(*next_guess, &new_possibilities)
+                        })
+                        .sum();
+                    total_guesses += total_next_guesses / next_guesses.len() as f64;
                 }
             }
-            total_score / possibilities.len() as f64
         }
+        1.0 + (total_guesses / possibilities.len() as f64)
     }
 
     scored_guess.score.avg_remaining_guesses =
@@ -251,9 +252,13 @@ pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<Score
     // Keep just the top `TO_KEEP_FROM_REMAINING_WORDS` guesses.
     keep_top_scores(&mut scores, TO_KEEP_FROM_REMAINING_WORDS);
 
-    scores
-        .par_iter_mut()
-        .for_each(|scored| compute_avg_remaining_guesses(scored, possibilities));
+    // For performance reasons, only compute the avg_remaining_guesses if the
+    // remaining possibilities fit into a slice subset.
+    if let Some(possibilities_subset) = SliceSubset::from_slice(possibilities) {
+        scores
+            .par_iter_mut()
+            .for_each(|scored| compute_avg_remaining_guesses(scored, &possibilities_subset));
+    }
 
     // Keep just the top `count` guesses.
     keep_top_scores(&mut scores, count);
