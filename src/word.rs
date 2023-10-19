@@ -37,7 +37,10 @@ pub fn letters_with_bg<'a, I>(letters: I, color: Color) -> String
 where
     I: IntoIterator<Item = &'a u8>,
 {
-    letters_to_string(letters).on_color(color).to_string()
+    letters_to_string(letters)
+        .on_color(color)
+        .color(Color::Black)
+        .to_string()
 }
 
 pub fn letter_with_fg(letter: Letter, color: Color) -> String {

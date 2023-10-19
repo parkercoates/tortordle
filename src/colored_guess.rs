@@ -1,5 +1,5 @@
 use crate::data_structures::Alphagram;
-use crate::word::{letter_with_bg, Letter, Word, WORD_LENGTH};
+use crate::word::{letter_to_string, letter_with_bg, Letter, Word, WORD_LENGTH};
 
 use colored::Color;
 use itertools::Itertools;
@@ -32,7 +32,10 @@ impl ColoredGuess {
 
     pub fn formatted(&self) -> String {
         self.iter()
-            .map(|(letter, state)| letter_with_bg(*letter, state.color()))
+            .map(|(letter, state)| match state {
+                GuessColor::Black => letter_to_string(*letter),
+                _ => letter_with_bg(*letter, state.color()),
+            })
             .join("")
     }
 
