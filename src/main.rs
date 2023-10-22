@@ -14,7 +14,7 @@ use possibilities::{all_possible_answers, PossibleAnswer};
 use terminal_size::terminal_size;
 use word::*;
 
-use colored::Color;
+use colored::{Color, Colorize};
 use std::{io::Write, process::ExitCode};
 
 const MAX_GUESSES: usize = 6;
@@ -142,34 +142,48 @@ fn print_remaining_words(
     }
 }
 
-fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
+fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, actual_guess: Word) {
     // If there are two suggestions or less, they are all equally good. If the
     // last suggestion's rank is 1, they are all tied and therefore equally
     // good. Regardless, let's not bother showing any suggested guesses.
     let all_equally_good = suggestions.len() <= 2 || suggestions.last().unwrap().rank == 1;
     if !all_equally_good {
+
         print_indent();
         for suggestion in suggestions {
-            print!("{:^COLUMN_WIDTH$} ", suggestion.rank);
+            let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank);
+            if suggestion.word == actual_guess {
+                item = item.on_color(Color::Blue).to_string();
+            }
+            print!("{} ", item);
         }
         println!();
 
         print_label("Suggested Guesses");
         for suggestion in suggestions {
-            // We can't use COLUMN_WIDTH here because the formatting codes
-            // throw off the justification counts.
-            print!("{} ", knowledge.format_word(suggestion.word));
+
+            if suggestion.word == actual_guess {
+                print!("{:^COLUMN_WIDTH$} ", letters_to_string(&suggestion.word).on_color(Color::Blue));
+            } else {
+                // We can't use COLUMN_WIDTH here because the formatting codes
+                // throw off the justification counts.
+                print!("{} ", knowledge.format_word(suggestion.word));
+            }
         }
         println!();
 
         let print_numbers = |label, getter: fn(&ScoredGuess) -> Points| {
             print_label(label);
             for suggestion in suggestions {
-                print!(
-                    "{:^COLUMN_WIDTH$.*} ",
+                let mut item = format!(
+                    "{:^COLUMN_WIDTH$.*}",
                     Points::DECIMAL_PLACES,
                     getter(suggestion)
                 );
+                if suggestion.word == actual_guess {
+                    item = item.on_color(Color::Blue).to_string();
+                }
+                print!("{} ", item);
             }
             println!();
         };
@@ -254,7 +268,7 @@ fn main() -> ExitCode {
     for (guess_index, guess) in guesses.into_iter().enumerate() {
         if cmd_args.suggest_first_guess || guess_index != 0 {
             let suggestions = best_guesses(&possibilities, column_count, guess_index);
-            print_suggestions(&suggestions, &knowledge);
+            print_suggestions(&suggestions, &knowledge, guess);
         }
 
         let colored_guess = color_guess(guess, answer);
