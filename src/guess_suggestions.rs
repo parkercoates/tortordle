@@ -35,6 +35,7 @@ impl fmt::Display for Points {
 
 #[derive(PartialEq, Eq)]
 pub struct Score {
+    pub avg_score: Points,
     pub avg_remaining_guesses: Points,
     pub remaining_words: Points,
     pub weighted_green_yellow_count: Points,
@@ -74,6 +75,7 @@ impl ScoredGuess {
             word,
             rank: 0,
             score: Score {
+                avg_score: Points::zero(),
                 avg_remaining_guesses: Points::zero(),
                 remaining_words: Points::zero(),
                 weighted_green_yellow_count: Points::zero(),
@@ -119,6 +121,7 @@ fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[
 fn compute_avg_remaining_guesses(
     scored_guess: &mut ScoredGuess,
     possibilities: &SliceSubset<PossibleAnswer>,
+    guesses_so_far: usize,
 ) {
     const MAX_GUESSES_TO_TRY: usize = 3;
 
@@ -187,8 +190,9 @@ fn compute_avg_remaining_guesses(
         1.0 + (total_guesses / possibilities.len() as f64)
     }
 
-    scored_guess.score.avg_remaining_guesses =
-        Points::from_f64(avg_remaining_guesses(scored_guess.word, possibilities));
+    let avg_guesses = avg_remaining_guesses(scored_guess.word, possibilities);
+    scored_guess.score.avg_remaining_guesses = Points::from_f64(avg_guesses);
+    scored_guess.score.avg_score = Points::from_f64(avg_guesses + guesses_so_far as f64);
 }
 
 fn compute_ranks(guesses: &mut [ScoredGuess]) {
@@ -223,7 +227,11 @@ fn keep_top_scores(scores: &mut Vec<ScoredGuess>, count: usize) {
     keep_top(scores, count, ScoredGuess::cmp);
 }
 
-pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<ScoredGuess> {
+pub fn best_guesses(
+    possibilities: &[PossibleAnswer],
+    count: usize,
+    guesses_so_far: usize,
+) -> Vec<ScoredGuess> {
     const TO_KEEP_FROM_COLOR_COUNT: usize = 100;
     const TO_KEEP_FROM_REMAINING_WORDS: usize = 32;
 
@@ -255,9 +263,9 @@ pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<Score
     // For performance reasons, only compute the avg_remaining_guesses if the
     // remaining possibilities fit into a slice subset.
     if let Some(possibilities_subset) = SliceSubset::from_slice(possibilities) {
-        scores
-            .par_iter_mut()
-            .for_each(|scored| compute_avg_remaining_guesses(scored, &possibilities_subset));
+        scores.par_iter_mut().for_each(|scored| {
+            compute_avg_remaining_guesses(scored, &possibilities_subset, guesses_so_far)
+        });
     }
 
     // Keep just the top `count` guesses.
@@ -271,7 +279,7 @@ pub fn best_guesses(possibilities: &[PossibleAnswer], count: usize) -> Vec<Score
 
 fn top_guesses(possibilities: &[PossibleAnswer]) -> Vec<ScoredGuess> {
     const WIDEST_TIE_TO_WORRY_ABOUT: usize = 10;
-    let mut guesses = best_guesses(possibilities, WIDEST_TIE_TO_WORRY_ABOUT);
+    let mut guesses = best_guesses(possibilities, WIDEST_TIE_TO_WORRY_ABOUT, 0);
     guesses.retain(|g| g.rank == 1);
     guesses
 }

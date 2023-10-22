@@ -174,11 +174,11 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge) {
             println!();
         };
 
-        // Due to its high cose, avg_remaining_guesses is only calculated when
+        // Due to its high cost, avg_score is only calculated when
         // the possibility space gets relatively small, so let's only print it
         // if it was computed.
-        if suggestions.first().unwrap().score.avg_remaining_guesses != Points::zero() {
-            print_numbers("Avg Guesses to Win", |s| s.score.avg_remaining_guesses);
+        if suggestions.first().unwrap().score.avg_score != Points::zero() {
+            print_numbers("Average Score", |s| s.score.avg_score);
         }
         print_numbers("Avg Remaining Words", |s| s.score.remaining_words);
         print_numbers("Avg Green/Yellow Count", |s| s.score.green_yellow_count);
@@ -253,7 +253,7 @@ fn main() -> ExitCode {
     println!("\n================= Guess Analysis =================\n");
     for (guess_index, guess) in guesses.into_iter().enumerate() {
         if cmd_args.suggest_first_guess || guess_index != 0 {
-            let suggestions = best_guesses(&possibilities, column_count);
+            let suggestions = best_guesses(&possibilities, column_count, guess_index);
             print_suggestions(&suggestions, &knowledge);
         }
 
