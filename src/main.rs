@@ -148,7 +148,6 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
     // good. Regardless, let's not bother showing any suggested guesses.
     let all_equally_good = suggestions.len() <= 2 || suggestions.last().unwrap().rank == 1;
     if !all_equally_good {
-
         print_indent();
         for suggestion in suggestions {
             let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank);
@@ -161,9 +160,11 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
 
         print_label("Suggested Guesses");
         for suggestion in suggestions {
-
             if suggestion.word == actual_guess {
-                print!("{:^COLUMN_WIDTH$} ", letters_to_string(&suggestion.word).on_color(Color::Blue));
+                print!(
+                    "{:^COLUMN_WIDTH$} ",
+                    letters_to_string(&suggestion.word).on_color(Color::Blue)
+                );
             } else {
                 // We can't use COLUMN_WIDTH here because the formatting codes
                 // throw off the justification counts.
@@ -172,14 +173,20 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
         }
         println!();
 
-        let print_numbers = |label, getter: fn(&ScoredGuess) -> Points| {
+        let print_numbers = |label, higher_is_better, getter: fn(&ScoredGuess) -> Points| {
+            let best_suggestion = if higher_is_better {
+                suggestions.iter().max_by(|a, b| getter(a).cmp(&getter(b)))
+            } else {
+                suggestions.iter().min_by(|a, b| getter(a).cmp(&getter(b)))
+            };
+            let best_value = getter(best_suggestion.unwrap());
             print_label(label);
             for suggestion in suggestions {
-                let mut item = format!(
-                    "{:^COLUMN_WIDTH$.*}",
-                    Points::DECIMAL_PLACES,
-                    getter(suggestion)
-                );
+                let value = getter(suggestion);
+                let mut item = format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value,);
+                if value == best_value {
+                    item = item.color(Color::Green).to_string();
+                }
                 if suggestion.word == actual_guess {
                     item = item.on_color(Color::Blue).to_string();
                 }
@@ -192,11 +199,13 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
         // the possibility space gets relatively small, so let's only print it
         // if it was computed.
         if suggestions.first().unwrap().score.avg_score != Points::zero() {
-            print_numbers("Average Score", |s| s.score.avg_score);
+            print_numbers("Average Score", false, |s| s.score.avg_score);
         }
-        print_numbers("Avg Remaining Words", |s| s.score.remaining_words);
-        print_numbers("Avg Green/Yellow Count", |s| s.score.green_yellow_count);
-        print_numbers("Avg Green Count", |s| s.score.green_count);
+        print_numbers("Avg Remaining Words", false, |s| s.score.remaining_words);
+        print_numbers("Avg Green/Yellow Count", true, |s| {
+            s.score.green_yellow_count
+        });
+        print_numbers("Avg Green Count", true, |s| s.score.green_count);
         println!();
     }
 }
