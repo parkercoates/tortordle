@@ -56,6 +56,8 @@ fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
         if arg.starts_with('-') {
             match arg.as_str() {
                 "--suggest-first-guess" => suggest_first_guess = true,
+                "--color" => colored::control::set_override(true),
+                "--no-color" => colored::control::set_override(false),
                 _ => return Err(format!("Unrecognized flag: {arg}")),
             }
         } else if let Some(word) = make_word(&arg) {
