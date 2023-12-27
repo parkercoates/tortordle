@@ -14,6 +14,7 @@ use possibilities::{all_possible_answers, PossibleAnswer};
 use terminal_size::terminal_size;
 use word::*;
 
+use clap::Parser;
 use colored::{Color, Colorize};
 use std::{io::Write, process::ExitCode};
 
@@ -42,37 +43,6 @@ fn println_note(text: &str) {
 fn println_indented_note(text: &str) {
     print_indent();
     println_note(text);
-}
-
-struct CmdArgs {
-    suggest_first_guess: bool,
-    words: Vec<Word>,
-}
-
-fn process_args(args: std::env::Args) -> Result<CmdArgs, String> {
-    let mut suggest_first_guess = false;
-    let mut words = Vec::with_capacity(MAX_WORDS);
-    for arg in args.skip(1) {
-        if arg.starts_with('-') {
-            match arg.as_str() {
-                "--suggest-first-guess" => suggest_first_guess = true,
-                "--color" => colored::control::set_override(true),
-                "--no-color" => colored::control::set_override(false),
-                _ => return Err(format!("Unrecognized flag: {arg}")),
-            }
-        } else if let Some(word) = make_word(&arg) {
-            words.push(word);
-        } else {
-            return Err(format!("{arg} is not a single word of five A-Z letters!"));
-        }
-    }
-    if MAX_WORDS < words.len() {
-        return Err(format!("More than {MAX_WORDS} word arguments provided!"));
-    }
-    Ok(CmdArgs {
-        suggest_first_guess,
-        words,
-    })
 }
 
 fn prompt_for_word(prompt: &str) -> Option<Word> {
@@ -234,30 +204,57 @@ pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
     Some(result)
 }
 
-fn main() -> ExitCode {
-    let cmd_args = match process_args(std::env::args()) {
-        Err(msg) => {
-            println!("{msg}");
-            return ExitCode::from(1);
-        }
-        Ok(result) => result,
-    };
+fn parse_word_from_arg(s: &str) -> Result<Word, String> {
+    make_word(s).ok_or(format!("'{s}' is not a word of five A-Z letters!"))
+}
 
-    let mut words = cmd_args.words;
-    if words.is_empty() {
-        words = prompt_for_words();
-        if words.is_empty() {
-            return ExitCode::SUCCESS;
-        }
+#[derive(Parser)]
+#[command(version, about = "A command line Wordle game analyser")]
+pub struct CmdArgs {
+    #[arg(
+        long,
+        num_args = 1..=MAX_WORDS,
+        value_parser = parse_word_from_arg,
+        value_name = "WORDS",
+        help = "Pass the game as a space separated list instead of via prompts"
+    )]
+    pub words: Option<Vec<Word>>,
+
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Show suggestions for the very first guess. Note that this is very slow and the results will be the same every time."
+    )]
+    pub suggest_first_guess: bool,
+
+    #[arg(long, help = "Force colorised output on")]
+    pub color: bool,
+
+    #[arg(long, conflicts_with = "color", help = "Force colorised output off")]
+    pub no_color: bool,
+}
+
+fn main() -> ExitCode {
+    let cmd_args = CmdArgs::parse();
+
+    if cmd_args.color {
+        colored::control::set_override(true);
+    } else if cmd_args.no_color {
+        colored::control::set_override(false);
     }
 
-    let answer = *words.last().unwrap();
+    let words = cmd_args.words.unwrap_or_else(prompt_for_words);
+    if words.is_empty() {
+        return ExitCode::FAILURE;
+    }
 
     let failed = MAX_GUESSES < words.len();
-    if failed {
-        words.pop();
-    }
-    let guesses = words;
+    let (answer, guesses) = if failed {
+        let mut words = words;
+        (words.pop().unwrap(), words)
+    } else {
+        (*words.last().unwrap(), words)
+    };
 
     let mut possibilities = all_possible_answers();
     let known_answer = possibilities.iter().filter(|a| a.word == answer).count() == 1;
