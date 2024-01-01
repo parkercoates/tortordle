@@ -1,8 +1,8 @@
 mod alphagram;
 mod colored_guess;
-mod data_structures;
 mod guess_suggestions;
 mod knowledge;
+mod letter_set;
 mod possibilities;
 mod slice_subset;
 mod word;
