@@ -1,6 +1,6 @@
 use bitset_core::BitSet;
 
-// SliceSubset is basically an immutible slice with the ability to retain only
+// SliceSubset is basically an immutable slice with the ability to retain only
 // the elements matching a given predicate. It does this by maintaining a bit
 // mask alongside the slice to keep track of which indexes are still "present".
 //

@@ -101,14 +101,14 @@ fn print_remaining_words(
             &knowledge.format_word(possibilities[0].word),
         ),
         _ => {
-            for (i, posibility) in possibilities.iter().enumerate() {
+            for (i, possibility) in possibilities.iter().enumerate() {
                 if i == 0 {
                     print_label(&format!("{} words remain", possibilities.len()));
                 } else if i % columns == 0 {
                     println!();
                     print_indent();
                 }
-                print!("{} ", knowledge.format_word(posibility.word));
+                print!("{} ", knowledge.format_word(possibility.word));
             }
             println!();
         }
@@ -127,7 +127,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             if suggestion.word == actual_guess {
                 item = item.on_color(Color::Blue).to_string();
             }
-            print!("{} ", item);
+            print!("{item} ");
         }
         println!();
 
@@ -163,7 +163,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
                 if suggestion.word == actual_guess {
                     item = item.on_color(Color::Blue).to_string();
                 }
-                print!("{} ", item);
+                print!("{item} ");
             }
             println!();
         };
@@ -323,7 +323,7 @@ fn main() -> ExitCode {
             &guesses.iter().map(ColoredGuess::formatted).join(" -> "),
         );
         if MAX_GUESSES < guesses.len() {
-            println_indented_note("I failed.")
+            println_indented_note("I failed.");
         }
     } else {
         println_note(

@@ -264,7 +264,7 @@ pub fn best_guesses(
     // remaining possibilities fit into a slice subset.
     if let Some(possibilities_subset) = SliceSubset::from_slice(possibilities) {
         scores.par_iter_mut().for_each(|scored| {
-            compute_avg_remaining_guesses(scored, &possibilities_subset, guesses_so_far)
+            compute_avg_remaining_guesses(scored, &possibilities_subset, guesses_so_far);
         });
     }
 

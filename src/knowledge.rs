@@ -47,8 +47,8 @@ impl LetterKnowledge {
 
     const fn could_still_be(self, letter: Letter) -> bool {
         match self {
+            Self::Is(_) => false,
             Self::IsNot(set) => !set.contains(letter),
-            _ => false,
         }
     }
 }
