@@ -2,6 +2,7 @@ use crate::colored_guess::{ColoredGuess, GuessColor};
 use crate::data_structures::{Alphagram, LetterSet};
 use crate::possibilities::PossibleAnswer;
 use crate::word::*;
+use arrayvec::ArrayVec;
 
 use colored::Color;
 use itertools::{izip, Itertools};
@@ -42,6 +43,13 @@ impl LetterKnowledge {
             Self::IsNot(set) => !set.contains(letter),
         }
     }
+
+    const fn could_still_be(self, letter: Letter) -> bool {
+        match self {
+            Self::IsNot(set) => !set.contains(letter),
+            _ => false,
+        }
+    }
 }
 
 pub struct WordKnowledge {
@@ -53,7 +61,7 @@ pub struct WordKnowledge {
 impl WordKnowledge {
     pub const fn new() -> Self {
         Self {
-            slots: [LetterKnowledge::IsNot(LetterSet::new()); 5],
+            slots: [LetterKnowledge::IsNot(LetterSet::new()); WORD_LENGTH],
             letters: Alphagram::new(),
             yellows: Alphagram::new(),
         }
@@ -125,20 +133,17 @@ impl WordKnowledge {
         // Note that this has to support the extremely rare case of having two
         // yellows of the same letter and only two slots they could match.
         // (Something I've never seen happen in a real game.)
+        const MAX_POTENTIAL_SLOTS: usize = WORD_LENGTH - 1;
         for (count, &letter) in self.yellows.clone().letters().dedup_with_count() {
-            let match_count = self
+            let potential_slots = self
                 .slots
-                .iter()
-                .filter(|slot| slot.matches(letter))
-                .count();
-            if match_count == count {
-                for slot in &mut self.slots {
-                    if let LetterKnowledge::IsNot(_) = slot {
-                        if slot.matches(letter) {
-                            slot.set_letter(letter);
-                            self.yellows.remove_letter(letter);
-                        }
-                    }
+                .iter_mut()
+                .filter(|slot| slot.could_still_be(letter))
+                .collect::<ArrayVec<&mut LetterKnowledge, MAX_POTENTIAL_SLOTS>>();
+            if potential_slots.len() == count {
+                for slot in potential_slots {
+                    slot.set_letter(letter);
+                    self.yellows.remove_letter(letter);
                 }
             }
         }
