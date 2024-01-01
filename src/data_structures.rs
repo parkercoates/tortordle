@@ -64,8 +64,10 @@ impl Alphagram {
     pub fn remove_letter(&mut self, letter: Letter) {
         for i in 0..WORD_LENGTH {
             if self.slots[i] == letter {
-                self.slots[i] = Self::NO_DATA;
-                self.slots.sort_unstable();
+                for j in i..WORD_LENGTH - 1 {
+                    self.slots[j] = self.slots[j + 1];
+                }
+                self.slots[WORD_LENGTH - 1] = Self::NO_DATA;
                 break;
             }
         }
