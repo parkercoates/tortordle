@@ -1,3 +1,4 @@
+mod alphagram;
 mod colored_guess;
 mod data_structures;
 mod guess_suggestions;

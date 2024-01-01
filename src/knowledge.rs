@@ -1,5 +1,6 @@
+use crate::alphagram::Alphagram;
 use crate::colored_guess::{ColoredGuess, GuessColor};
-use crate::data_structures::{Alphagram, LetterSet};
+use crate::data_structures::LetterSet;
 use crate::possibilities::PossibleAnswer;
 use crate::word::*;
 use arrayvec::ArrayVec;

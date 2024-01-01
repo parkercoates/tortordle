@@ -1,4 +1,4 @@
-use crate::data_structures::Alphagram;
+use crate::alphagram::Alphagram;
 use crate::word::{letter_to_string, letter_with_bg, Letter, Word, WORD_LENGTH};
 
 use colored::Color;
