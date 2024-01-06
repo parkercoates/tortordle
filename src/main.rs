@@ -15,7 +15,7 @@ use possibilities::{all_possible_answers, PossibleAnswer};
 use terminal_size::terminal_size;
 use word::*;
 
-use clap::Parser;
+use clap::{value_parser, Parser};
 use colored::{Color, Colorize};
 use std::{io::Write, process::ExitCode};
 
@@ -23,7 +23,6 @@ const MAX_GUESSES: usize = 6;
 const MAX_WORDS: usize = MAX_GUESSES + 1;
 
 const LABEL_WIDTH: usize = 22;
-const COLUMN_WIDTH: usize = 5;
 
 fn print_indent() {
     print!("{:>LABEL_WIDTH$}  ", "");
@@ -123,7 +122,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
     if !all_equally_good {
         print_indent();
         for suggestion in suggestions {
-            let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank);
+            let mut item = format!("{:^WORD_LENGTH$}", suggestion.rank);
             if suggestion.word == actual_guess {
                 item = item.on_color(Color::Blue).to_string();
             }
@@ -135,7 +134,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
         for suggestion in suggestions {
             if suggestion.word == actual_guess {
                 print!(
-                    "{:^COLUMN_WIDTH$} ",
+                    "{:^WORD_LENGTH$} ",
                     letters_to_string(&suggestion.word).on_color(Color::Blue)
                 );
             } else {
@@ -156,7 +155,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             print_label(label);
             for suggestion in suggestions {
                 let value = getter(suggestion);
-                let mut item = format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value,);
+                let mut item = format!("{:^WORD_LENGTH$.*}", Points::DECIMAL_PLACES, value,);
                 if value == best_value {
                     item = item.color(Color::Green).to_string();
                 }
@@ -228,11 +227,27 @@ pub struct CmdArgs {
     )]
     pub suggest_first_guess: bool,
 
+    #[arg(
+        long,
+        value_name = "COLUMNS",
+        value_parser = value_parser!(u8).range(1..=32),
+        help = "Set the number of columns in the output. If not set, defaults to the number of columns that fit in the terminal width."
+    )]
+    pub columns: Option<u8>,
+
     #[arg(long, help = "Force colorised output on")]
     pub color: bool,
 
     #[arg(long, conflicts_with = "color", help = "Force colorised output off")]
     pub no_color: bool,
+}
+
+fn column_count_from_width() -> usize {
+    let term_width = terminal_size().map(|(w, _h)| w.0).unwrap_or(80);
+    // This calculation must be signed as it can go negative...
+    let column_count = (term_width as i32 - LABEL_WIDTH as i32 - 2) / (WORD_LENGTH as i32 + 1);
+    // ...but that isn't a big deal as we need to clamp the value at 1 anyway.
+    column_count.clamp(1, 32) as usize
 }
 
 fn main() -> ExitCode {
@@ -243,6 +258,11 @@ fn main() -> ExitCode {
     } else if cmd_args.no_color {
         colored::control::set_override(false);
     }
+
+    let column_count = cmd_args
+        .columns
+        .map(usize::from)
+        .unwrap_or_else(column_count_from_width);
 
     let words = cmd_args.words.unwrap_or_else(prompt_for_words);
     if words.is_empty() {
@@ -269,9 +289,6 @@ fn main() -> ExitCode {
     }
 
     let mut knowledge = WordKnowledge::new();
-
-    let term_width = terminal_size().map_or(80, |(w, _h)| w.0 as usize);
-    let column_count = (term_width - LABEL_WIDTH - 2) / (COLUMN_WIDTH + 1);
 
     println!("\n================= Guess Analysis =================\n");
     for (guess_index, guess) in guesses.into_iter().enumerate() {
