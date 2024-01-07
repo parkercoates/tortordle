@@ -1,4 +1,5 @@
 use crate::word::{Letter, Word, WORD_LENGTH};
+use std::cmp::Ordering;
 
 // An alphagram is the set of letters, listed in alphabetical order. The term is
 // taken from competitive Scrabble, where it is the most common way of racking
@@ -27,9 +28,9 @@ impl Alphagram {
     }
 
     pub fn add_letter(&mut self, mut letter: Letter) {
-        for i in 0..WORD_LENGTH {
-            if letter < self.slots[i] {
-                std::mem::swap(&mut self.slots[i], &mut letter);
+        for slot in self.slots.iter_mut() {
+            if letter < *slot {
+                std::mem::swap(slot, &mut letter)
             }
         }
     }
@@ -54,29 +55,39 @@ impl Alphagram {
         self.slots.contains(&letter)
     }
 
-    pub fn contains_other(self, subset: Self) -> bool {
-        let mut i: usize = 0;
-        let mut j: usize = 0;
-        loop {
-            match self.slots[i].cmp(&subset.slots[j]) {
-                std::cmp::Ordering::Equal => {
-                    i += 1;
-                    j += 1;
-                }
-                std::cmp::Ordering::Greater => {
+    pub fn contains_other(self, other: Self) -> bool {
+        let mut letters_to_find = other.letters();
+        let mut letter_to_find = match letters_to_find.next() {
+            Some(letter) => letter,
+            // If there are no letters to find, we've already succeeded.
+            None => return true,
+        };
+
+        // We walk through `self` looking for the elements of `letters_to_find`. Because both are
+        // sorted, we can do this in a single pass, considering only the smallest remaining element
+        // of each alphagram.
+        for letter in self.slots {
+            match letter.cmp(&letter_to_find) {
+                Ordering::Greater => {
+                    // The current letter is greater than `letter_to_find`, meaning we have no hope
+                    // of ever finding it.
                     return false;
                 }
-                std::cmp::Ordering::Less => {
-                    i += 1;
+                Ordering::Equal => {
+                    // We found the letter we were looking for, so we advance to the next. If
+                    // `letters_to_find` is done, we have found them all.
+                    letter_to_find = match letters_to_find.next() {
+                        Some(letter) => letter,
+                        None => return true,
+                    };
+                }
+                Ordering::Less => {
+                    // The current letter is not one we are looking for. Continue.
                 }
             }
-
-            if j == WORD_LENGTH || subset.slots[j] == Self::NO_DATA {
-                return true;
-            } else if i == WORD_LENGTH || self.slots[i] == Self::NO_DATA {
-                return false;
-            }
         }
+        // We reached the end of `self` without finding all the letters.
+        return false;
     }
 
     pub fn merge_via_max(&mut self, other: Self) {
