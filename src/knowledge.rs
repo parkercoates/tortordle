@@ -179,8 +179,8 @@ impl WordKnowledge {
     // `check_for_conflicts(possibility.word).is_empty()`
     pub fn matches(&self, possibility: &PossibleAnswer) -> bool {
         let slots_match = std::iter::zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l));
-        let needs_match = possibility.alphagram.contains_other(self.letters);
-        slots_match && needs_match
+        let has_yellows = possibility.alphagram.contains_other(self.yellows);
+        slots_match && has_yellows
     }
 
     pub fn formatted(&self) -> String {
