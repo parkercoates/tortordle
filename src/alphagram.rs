@@ -21,11 +21,9 @@ impl Alphagram {
     }
 
     pub fn from_word(word: Word) -> Self {
-        let mut alphagram = Self::new();
-        for letter in word {
-            alphagram.add_letter(letter);
+        Self {
+            slots: sorted5(word),
         }
-        alphagram
     }
 
     pub fn add_letter(&mut self, mut letter: Letter) {
@@ -124,4 +122,27 @@ impl Alphagram {
         }
         self.slots = new;
     }
+}
+
+// An optimal sorting network for 5 elements.
+// Taken from https://bertdobbelaere.github.io/sorting_networks.html#N5L9D5
+fn sorted5<T: PartialOrd>(mut arr: [T; 5]) -> [T; 5] {
+    macro_rules! compare_exchange {
+        ($arr:ident, $i:literal, $j:literal) => {
+            if $arr[$j] < $arr[$i] {
+                $arr.swap($i, $j);
+            }
+        };
+    }
+
+    compare_exchange!(arr, 0, 3);
+    compare_exchange!(arr, 1, 4);
+    compare_exchange!(arr, 0, 2);
+    compare_exchange!(arr, 1, 3);
+    compare_exchange!(arr, 0, 1);
+    compare_exchange!(arr, 2, 4);
+    compare_exchange!(arr, 1, 2);
+    compare_exchange!(arr, 3, 4);
+    compare_exchange!(arr, 2, 3);
+    arr
 }
