@@ -55,7 +55,6 @@ impl LetterKnowledge {
 
 pub struct WordKnowledge {
     slots: [LetterKnowledge; WORD_LENGTH],
-    letters: Alphagram,
     yellows: Alphagram,
 }
 
@@ -63,14 +62,21 @@ impl WordKnowledge {
     pub const fn new() -> Self {
         Self {
             slots: [LetterKnowledge::IsNot(LetterSet::new()); WORD_LENGTH],
-            letters: Alphagram::new(),
             yellows: Alphagram::new(),
         }
     }
 
     pub fn add_guess(&mut self, guess: &ColoredGuess) {
-        // First we add information from the guess into the existing slots and
-        // build up new all-letter and yellow-letter alphagrams for this guess.
+        // First, we compute the alphagram of all letters we already knew were in the word.
+        let mut old_letters = self.yellows;
+        for slot in &self.slots {
+            if let LetterKnowledge::Is(letter) = slot {
+                old_letters.add_letter(*letter);
+            }
+        }
+
+        // Second, we add information from the guess into the existing slots and build up new
+        // all-letter and yellow-letter alphagrams for this guess.
         let mut new_letters = Alphagram::new();
         let mut new_yellows = Alphagram::new();
         for (i, (letter, color)) in guess.iter().enumerate() {
@@ -86,10 +92,9 @@ impl WordKnowledge {
                 }
                 GuessColor::Black => {
                     if new_yellows.contains(*letter) {
-                        // If we've already seen this letter as yellow to the
-                        // left of this slot in _this_ guess, seeing it again as
-                        // black only tells us that that this specific slot
-                        // can't be that letter.
+                        // If we've already seen this letter as yellow to the left of this slot in
+                        // _this_ guess, seeing it again as black only tells us that that this
+                        // specific slot can't be that letter.
                         self.slots[i].remove_letter(*letter);
                     } else {
                         // Otherwise, we know that letter occurs in no slot.
@@ -99,35 +104,33 @@ impl WordKnowledge {
             }
         }
 
-        // Second, we get the new all-letter alphagram by merging the previous
-        // alphagram with the alphagram for this guess, taking the higher count
-        // of the two for each letter.
+        // Third, we get the new all-letter alphagram by merging the previous alphagram with the
+        // alphagram for this guess, taking the higher count of the two for each letter.
         //
-        // Note that we can't just use `new_letters` because of non-hard mode
-        // players. `new_letters` may be missing letters from previous guesses.
-        self.letters.merge_via_max(new_letters);
+        // Note that we can't just use `new_letters` because of non-hard mode players. `new_letters`
+        // may be missing letters from previous guesses.
+        new_letters.merge_via_max(old_letters);
 
-        // Third, we compute the new set of yellows by starting with the new
-        // all-letter alphagram and removing all the greens.
+        // Fourth, we compute the new set of yellows by starting with the new all-letter alphagram
+        // and removing all the greens.
         //
-        // Note that we can't just use `new_yellows` because of non-hard mode
-        // players. The new guess could conflict with previous guesses, meaning
-        // `new_yellows` could contain letters that were green in previous
-        // guesses or be missing yellow letters from previous guesses.
-        self.yellows = self.letters;
+        // Note that we can't just use `new_yellows` because of non-hard mode players. The new guess
+        // could conflict with previous guesses, meaning `new_yellows` could contain letters that
+        // were green in previous guesses or be missing yellow letters from previous guesses.
+        self.yellows = new_letters;
         for slot in &self.slots {
             if let LetterKnowledge::Is(letter) = slot {
                 self.yellows.remove_letter(*letter);
             }
         }
 
-        // Finally, we search for yellow letters whose count exactly equals the
-        // number of slots where that letter could possibly be put, allowing us
-        // to place the letter in those slots and remove it from yellows.
+        // Finally, we search for yellow letters whose count exactly equals the number of slots
+        // where that letter could possibly be put, allowing us to place the letter in those slots
+        // and remove it from yellows.
         //
-        // Note that this has to support the extremely rare case of having two
-        // yellows of the same letter and only two slots they could match.
-        // (Something I've never seen happen in a real game.)
+        // Note that this has to support the extremely rare case of having two yellows of the same
+        // letter and only two slots they could match. (Something I've never seen happen in a real
+        // game.)
         const MAX_POTENTIAL_SLOTS: usize = WORD_LENGTH - 1;
         for (count, &letter) in self.yellows.clone().letters().dedup_with_count() {
             let potential_slots = self
