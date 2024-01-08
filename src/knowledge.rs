@@ -68,12 +68,6 @@ impl WordKnowledge {
         }
     }
 
-    pub fn from_guess(guess: &ColoredGuess) -> Self {
-        let mut result = Self::new();
-        result.add_guess(guess);
-        result
-    }
-
     pub fn add_guess(&mut self, guess: &ColoredGuess) {
         // First we add information from the guess into the existing slots and
         // build up new all-letter and yellow-letter alphagrams for this guess.
@@ -255,5 +249,45 @@ fn add_indefinite_article_to_letter(letter: Letter) -> String {
     match c {
         'A' | 'E' | 'F' | 'H' | 'I' | 'L' | 'M' | 'N' | 'O' | 'R' | 'S' | 'X' => format!("an {c}"),
         _ => format!("a {c}"),
+    }
+}
+
+// FastWordKnowledge is a stripped down version of WordKnowledge, concerned
+// only with speed. It is created from a single guess and doesn't support
+// building up knowledge over multiple guesses.
+#[derive(Clone, Copy)]
+pub struct FastWordKnowledge {
+    slots: [LetterKnowledge; WORD_LENGTH],
+    yellows: Alphagram,
+}
+
+impl FastWordKnowledge {
+    pub fn from_guess(guess: &ColoredGuess) -> Self {
+        let mut yellows = Alphagram::new();
+        let mut slots = [LetterKnowledge::IsNot(LetterSet::new()); WORD_LENGTH];
+        for (i, (letter, color)) in guess.iter().enumerate() {
+            match color {
+                GuessColor::Green => {
+                    slots[i].set_letter(*letter);
+                }
+                GuessColor::Yellow => {
+                    yellows.add_letter(*letter);
+                    slots[i].remove_letter(*letter);
+                }
+                GuessColor::Black => {
+                    if yellows.contains(*letter) {
+                        slots[i].remove_letter(*letter);
+                    } else {
+                        slots.iter_mut().for_each(|s| s.remove_letter(*letter));
+                    }
+                }
+            }
+        }
+        Self { slots, yellows }
+    }
+
+    pub fn matches(&self, possibility: &PossibleAnswer) -> bool {
+        std::iter::zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l))
+            && possibility.alphagram.contains_other(self.yellows)
     }
 }
