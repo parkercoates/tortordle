@@ -5,18 +5,21 @@ use colored::Color;
 use itertools::Itertools;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum GuessColor {
     Black,
     Yellow,
     Green,
 }
 
+use GuessColor::*;
+
 impl GuessColor {
     pub const fn color(self) -> Color {
         match self {
-            Self::Black => Color::Black,
-            Self::Yellow => Color::Yellow,
-            Self::Green => Color::Green,
+            Black => Color::Black,
+            Yellow => Color::Yellow,
+            Green => Color::Green,
         }
     }
 }
@@ -33,51 +36,47 @@ impl ColoredGuess {
     pub fn formatted(&self) -> String {
         self.iter()
             .map(|(letter, state)| match state {
-                GuessColor::Black => letter_to_string(*letter),
+                Black => letter_to_string(*letter),
                 _ => letter_with_bg(*letter, state.color()),
             })
             .join("")
     }
 
     pub fn green_count(&self) -> usize {
-        self.iter()
-            .filter(|(_, state)| *state == GuessColor::Green)
-            .count()
+        self.iter().filter(|(_, state)| *state == Green).count()
     }
 
     pub fn green_yellow_count(&self) -> usize {
-        self.iter()
-            .filter(|(_, state)| *state != GuessColor::Black)
-            .count()
+        self.iter().filter(|(_, state)| *state != Black).count()
     }
 
     pub fn weighted_green_yellow_count(&self) -> usize {
         self.iter()
             .map(|(_, state)| match state {
-                GuessColor::Black => 0,
-                GuessColor::Yellow => 74,
-                GuessColor::Green => 100,
+                Black => 0,
+                Yellow => 74,
+                Green => 100,
             })
             .sum()
     }
 }
 
 pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
-    let mut slots = [(b' ', GuessColor::Black); WORD_LENGTH];
+    let mut slots = [(b' ', Black); WORD_LENGTH];
     let mut yellows = Alphagram::new();
     for (guess_letter, answer_letter, (letter, state)) in
         itertools::izip!(guess, answer, &mut slots)
     {
         *letter = guess_letter;
         if guess_letter == answer_letter {
-            *state = GuessColor::Green;
+            *state = Green;
         } else {
             yellows.add_letter(answer_letter);
         }
     }
     for (letter, state) in &mut slots {
-        if *state == GuessColor::Black && yellows.contains(*letter) {
-            *state = GuessColor::Yellow;
+        if *state == Black && yellows.contains(*letter) {
+            *state = Yellow;
             yellows.remove_letter(*letter);
         }
     }
