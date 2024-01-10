@@ -13,23 +13,24 @@ enum LetterKnowledge {
     Is(Letter),
     IsNot(LetterSet),
 }
+use LetterKnowledge::*;
 
 impl LetterKnowledge {
     fn set_letter(&mut self, letter: Letter) {
-        *self = Self::Is(letter);
+        *self = Is(letter);
     }
 
     fn remove_letter(&mut self, letter: Letter) {
         match self {
-            Self::Is(_) => (),
-            Self::IsNot(set) => set.insert(letter),
+            Is(_) => (),
+            IsNot(set) => set.insert(letter),
         }
     }
 
     fn formatted(self, yellows: Alphagram) -> String {
         match self {
-            Self::Is(letter) => letter_with_fg(letter, Color::Green),
-            Self::IsNot(set) => {
+            Is(letter) => letter_with_fg(letter, Color::Green),
+            IsNot(set) => {
                 letters_with_fg(
                     yellows.letters().dedup().filter(|&l| !set.contains(*l)),
                     Color::Yellow,
@@ -40,15 +41,15 @@ impl LetterKnowledge {
 
     const fn matches(self, letter: Letter) -> bool {
         match self {
-            Self::Is(known_letter) => letter == known_letter,
-            Self::IsNot(set) => !set.contains(letter),
+            Is(known_letter) => letter == known_letter,
+            IsNot(set) => !set.contains(letter),
         }
     }
 
     const fn could_still_be(self, letter: Letter) -> bool {
         match self {
-            Self::Is(_) => false,
-            Self::IsNot(set) => !set.contains(letter),
+            Is(_) => false,
+            IsNot(set) => !set.contains(letter),
         }
     }
 }
@@ -61,7 +62,7 @@ pub struct WordKnowledge {
 impl WordKnowledge {
     pub const fn new() -> Self {
         Self {
-            slots: [LetterKnowledge::IsNot(LetterSet::new()); WORD_LENGTH],
+            slots: [IsNot(LetterSet::new()); WORD_LENGTH],
             yellows: Alphagram::new(),
         }
     }
@@ -70,7 +71,7 @@ impl WordKnowledge {
     // complications of existing knowledge.
     pub fn from_guess(guess: &ColoredGuess) -> Self {
         let mut yellows = Alphagram::new();
-        let mut slots = [LetterKnowledge::IsNot(LetterSet::new()); WORD_LENGTH];
+        let mut slots = [IsNot(LetterSet::new()); WORD_LENGTH];
         for (i, (letter, color)) in guess.iter().enumerate() {
             match color {
                 GuessColor::Green => {
@@ -96,7 +97,7 @@ impl WordKnowledge {
         // First, we compute the alphagram of all letters we already knew were in the word.
         let mut old_letters = self.yellows;
         for slot in &self.slots {
-            if let LetterKnowledge::Is(letter) = slot {
+            if let Is(letter) = slot {
                 old_letters.add_letter(*letter);
             }
         }
@@ -145,7 +146,7 @@ impl WordKnowledge {
         // were green in previous guesses or be missing yellow letters from previous guesses.
         self.yellows = new_letters;
         for slot in &self.slots {
-            if let LetterKnowledge::Is(letter) = slot {
+            if let Is(letter) = slot {
                 self.yellows.remove_letter(*letter);
             }
         }
@@ -177,12 +178,12 @@ impl WordKnowledge {
         let mut conflicts = Vec::new();
         for (i, letter, slot) in izip!(0..WORD_LENGTH, word, self.slots) {
             match slot {
-                LetterKnowledge::Is(known) => {
+                Is(known) => {
                     if known != letter {
                         conflicts.push(Conflict::MustBe(i, known));
                     }
                 }
-                LetterKnowledge::IsNot(set) => {
+                IsNot(set) => {
                     if set.contains(letter) {
                         conflicts.push(Conflict::CannotBe(i, letter));
                     }
@@ -218,9 +219,7 @@ impl WordKnowledge {
     pub fn format_word(&self, word: Word) -> String {
         std::iter::zip(word, &self.slots)
             .map(|(letter, slot)| match slot {
-                LetterKnowledge::Is(known_letter) if letter == *known_letter => {
-                    letter_with_fg(letter, Color::Green)
-                }
+                Is(known_letter) if letter == *known_letter => letter_with_fg(letter, Color::Green),
                 _ if self.yellows.contains(letter) => letter_with_fg(letter, Color::Yellow),
                 _ => letter_to_string(letter),
             })
