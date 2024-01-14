@@ -107,8 +107,7 @@ fn compute_avg_remaining_words(scored_guess: &mut ScoredGuess, possibilities: &[
     let mut remaining_count: usize = 0;
     for answer in possibilities {
         if answer.word != scored_guess.word {
-            let colored_guess = color_guess(scored_guess.word, answer.word);
-            let knowledge = WordKnowledge::from_guess(&colored_guess);
+            let knowledge = WordKnowledge::from_guess(scored_guess.word, answer.word);
             remaining_count += possibilities
                 .iter()
                 .filter(|pos| knowledge.matches(pos))
@@ -170,8 +169,7 @@ fn compute_avg_remaining_guesses(
         let mut total_guesses = 0f64;
         for answer in possibilities {
             if answer.word != guess {
-                let colored_guess = color_guess(guess, answer.word);
-                let knowledge = WordKnowledge::from_guess(&colored_guess);
+                let knowledge = WordKnowledge::from_guess(guess, answer.word);
                 let new_possibilities = possibilities.retained(|a| knowledge.matches(a));
                 if new_possibilities.len() <= 1 {
                     total_guesses += 1.0;

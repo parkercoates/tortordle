@@ -67,30 +67,36 @@ impl WordKnowledge {
         }
     }
 
-    // from_guess is a stripped down version of add_guess that doesn't have to deal with the
-    // complications of existing knowledge.
-    pub fn from_guess(guess: &ColoredGuess) -> Self {
-        let mut yellows = Alphagram::new();
-        let mut slots = [IsNot(LetterSet::new()); WORD_LENGTH];
-        for (i, (letter, color)) in guess.iter().enumerate() {
-            match color {
-                GuessColor::Green => {
-                    slots[i].set_letter(*letter);
-                }
-                GuessColor::Yellow => {
-                    yellows.add_letter(*letter);
-                    slots[i].remove_letter(*letter);
-                }
-                GuessColor::Black => {
-                    if yellows.contains(*letter) {
-                        slots[i].remove_letter(*letter);
-                    } else {
-                        slots.iter_mut().for_each(|s| s.remove_letter(*letter));
-                    }
+    // from_guess is an unholy, stripped down combination of color_guess and add_guess focused
+    // purely on performance. Because it only creates new Knowledge, it doesn't have to deal with
+    // the complications of existing knowledge and conflicting guesses, allowing it to cut a lot of
+    // corners.
+    pub fn from_guess(guess: Word, answer: Word) -> Self {
+        let mut result = Self::new();
+        let mut potential_yellows = Alphagram::new();
+        for (guess_letter, answer_letter, slot) in izip!(guess, answer, &mut result.slots) {
+            if guess_letter == answer_letter {
+                slot.set_letter(guess_letter);
+            } else {
+                slot.remove_letter(guess_letter);
+                potential_yellows.add_letter(answer_letter);
+            }
+        }
+
+        for (i, &letter) in guess.iter().enumerate() {
+            if let IsNot(_) = result.slots[i] {
+                if potential_yellows.contains(letter) {
+                    result.yellows.add_letter(letter);
+                    potential_yellows.remove_letter(letter);
+                } else if !result.yellows.contains(letter) {
+                    result
+                        .slots
+                        .iter_mut()
+                        .for_each(|s| s.remove_letter(letter));
                 }
             }
         }
-        Self { slots, yellows }
+        result
     }
 
     pub fn add_guess(&mut self, guess: &ColoredGuess) {
