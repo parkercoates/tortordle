@@ -8,7 +8,6 @@ use arrayvec::ArrayVec;
 use colored::Color;
 use itertools::{izip, Itertools};
 
-#[derive(Clone, Copy)]
 enum LetterKnowledge {
     Is(Letter),
     IsNot(LetterSet),
@@ -16,6 +15,10 @@ enum LetterKnowledge {
 use LetterKnowledge::*;
 
 impl LetterKnowledge {
+    const fn new() -> Self {
+        IsNot(LetterSet::new())
+    }
+
     fn set_letter(&mut self, letter: Letter) {
         *self = Is(letter);
     }
@@ -27,26 +30,26 @@ impl LetterKnowledge {
         }
     }
 
-    fn formatted(self, yellows: Alphagram) -> String {
+    fn formatted(&self, yellows: Alphagram) -> String {
         match self {
-            Is(letter) => letter_with_fg(letter, Color::Green),
+            Is(letter) => letter_with_fg(*letter, Color::Green),
             IsNot(set) => {
                 letters_with_fg(
-                    yellows.letters().dedup().filter(|&l| !set.contains(*l)),
+                    yellows.letters().dedup().filter(|&&l| !set.contains(l)),
                     Color::Yellow,
                 ) + &letters_with_fg(&set.letters(), Color::Red)
             }
         }
     }
 
-    const fn matches(self, letter: Letter) -> bool {
+    const fn matches(&self, letter: Letter) -> bool {
         match self {
-            Is(known_letter) => letter == known_letter,
+            Is(known_letter) => letter == *known_letter,
             IsNot(set) => !set.contains(letter),
         }
     }
 
-    const fn could_still_be(self, letter: Letter) -> bool {
+    const fn could_still_be(&self, letter: Letter) -> bool {
         match self {
             Is(_) => false,
             IsNot(set) => !set.contains(letter),
@@ -61,8 +64,9 @@ pub struct WordKnowledge {
 
 impl WordKnowledge {
     pub const fn new() -> Self {
+        const EMPTY_SLOT: LetterKnowledge = LetterKnowledge::new();
         Self {
-            slots: [IsNot(LetterSet::new()); WORD_LENGTH],
+            slots: [EMPTY_SLOT; WORD_LENGTH],
             yellows: Alphagram::new(),
         }
     }
@@ -182,11 +186,11 @@ impl WordKnowledge {
 
     pub fn check_for_conflicts(&self, word: Word) -> Vec<Conflict> {
         let mut conflicts = Vec::new();
-        for (i, letter, slot) in izip!(0..WORD_LENGTH, word, self.slots) {
+        for (i, letter, slot) in izip!(0..WORD_LENGTH, word, &self.slots) {
             match slot {
                 Is(known) => {
-                    if known != letter {
-                        conflicts.push(Conflict::MustBe(i, known));
+                    if *known != letter {
+                        conflicts.push(Conflict::MustBe(i, *known));
                     }
                 }
                 IsNot(set) => {
