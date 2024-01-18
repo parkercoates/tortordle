@@ -75,9 +75,8 @@ pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
         }
     }
     for (letter, state) in &mut slots {
-        if *state == Black && yellows.contains(*letter) {
+        if *state == Black && yellows.remove_letter(*letter) {
             *state = Yellow;
-            yellows.remove_letter(*letter);
         }
     }
     ColoredGuess { slots }

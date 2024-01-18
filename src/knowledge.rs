@@ -89,9 +89,8 @@ impl WordKnowledge {
 
         for (i, &letter) in guess.iter().enumerate() {
             if let IsNot(_) = result.slots[i] {
-                if potential_yellows.contains(letter) {
+                if potential_yellows.remove_letter(letter) {
                     result.yellows.add_letter(letter);
-                    potential_yellows.remove_letter(letter);
                 } else if !result.yellows.contains(letter) {
                     result
                         .slots

@@ -35,16 +35,17 @@ impl Alphagram {
         }
     }
 
-    pub fn remove_letter(&mut self, letter: Letter) {
+    pub fn remove_letter(&mut self, letter: Letter) -> bool {
         for i in 0..WORD_LENGTH {
             if self.slots[i] == letter {
                 for j in i..WORD_LENGTH - 1 {
                     self.slots[j] = self.slots[j + 1];
                 }
                 self.slots[WORD_LENGTH - 1] = Self::NO_DATA;
-                break;
+                return true;
             }
         }
+        return false;
     }
 
     pub fn letters(&self) -> impl Iterator<Item = &Letter> {
