@@ -36,7 +36,6 @@ impl fmt::Display for Points {
 #[derive(PartialEq, Eq)]
 pub struct Score {
     pub avg_score: Points,
-    pub avg_remaining_guesses: Points,
     pub remaining_words: Points,
     pub weighted_green_yellow_count: Points,
     pub green_yellow_count: Points,
@@ -45,8 +44,8 @@ pub struct Score {
 
 impl Ord for Score {
     fn cmp(&self, o: &Self) -> Ordering {
-        self.avg_remaining_guesses
-            .cmp(&o.avg_remaining_guesses)
+        self.avg_score
+            .cmp(&o.avg_score)
             .then(self.remaining_words.cmp(&o.remaining_words))
             .then(
                 self.weighted_green_yellow_count
@@ -76,7 +75,6 @@ impl ScoredGuess {
             rank: 0,
             score: Score {
                 avg_score: Points::zero(),
-                avg_remaining_guesses: Points::zero(),
                 remaining_words: Points::zero(),
                 weighted_green_yellow_count: Points::zero(),
                 green_yellow_count: Points::zero(),
@@ -189,7 +187,6 @@ fn compute_avg_remaining_guesses(
     }
 
     let avg_guesses = avg_remaining_guesses(scored_guess.word, possibilities);
-    scored_guess.score.avg_remaining_guesses = Points::from_f64(avg_guesses);
     scored_guess.score.avg_score = Points::from_f64(avg_guesses + guesses_so_far as f64);
 }
 
