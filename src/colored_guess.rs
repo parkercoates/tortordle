@@ -42,14 +42,6 @@ impl ColoredGuess {
             .join("")
     }
 
-    pub fn green_count(&self) -> usize {
-        self.iter().filter(|(_, state)| *state == Green).count()
-    }
-
-    pub fn green_yellow_count(&self) -> usize {
-        self.iter().filter(|(_, state)| *state != Black).count()
-    }
-
     pub fn weighted_green_yellow_count(&self) -> usize {
         self.iter()
             .map(|(_, state)| match state {

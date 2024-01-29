@@ -170,14 +170,12 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
         // Due to its high cost, avg_score is only calculated when
         // the possibility space gets relatively small, so let's only print it
         // if it was computed.
-        if suggestions.first().unwrap().score.avg_score != Points::zero() {
-            print_numbers("Average Score", false, |s| s.score.avg_score);
+        if suggestions.first().unwrap().avg_score != Points::zero() {
+            print_numbers("Average Score", false, |s| s.avg_score);
         }
-        print_numbers("Avg Remaining Words", false, |s| s.score.remaining_words);
-        print_numbers("Avg Green/Yellow Count", true, |s| {
-            s.score.green_yellow_count
-        });
-        print_numbers("Avg Green Count", true, |s| s.score.green_count);
+        print_numbers("Avg Remaining Words", false, |s| s.remaining_words);
+        print_numbers("Avg Green/Yellow Count", true, |s| s.green_yellow_count);
+        print_numbers("Avg Green Count", true, |s| s.green_count);
         println!();
     }
 }
