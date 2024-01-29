@@ -1,7 +1,6 @@
 use crate::alphagram::Alphagram;
 use crate::word::{Letter, Word, WORD_LENGTH};
 
-#[derive(Clone, Copy)]
 pub struct PossibleAnswer {
     pub word: Word,
     pub alphagram: Alphagram,
