@@ -11,7 +11,7 @@ use colored_guess::{color_guess, ColoredGuess};
 use guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
 use itertools::Itertools;
 use knowledge::WordKnowledge;
-use possibilities::{all_possible_answers, PossibleAnswer};
+use possibilities::{PossibleAnswer, POSSIBLE_ANSWERS};
 use terminal_size::terminal_size;
 use word::*;
 
@@ -184,7 +184,7 @@ pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
     const STARTING_GUESS: Word = [b'R', b'A', b'I', b'S', b'E'];
     let mut guess = STARTING_GUESS;
     let mut knowledge = WordKnowledge::new();
-    let mut possibilities = all_possible_answers();
+    let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
     let mut result = Vec::<ColoredGuess>::new();
     loop {
         let colored = color_guess(guess, answer);
@@ -272,8 +272,7 @@ fn main() -> ExitCode {
         (*words.last().unwrap(), words)
     };
 
-    let mut possibilities = all_possible_answers();
-    let known_answer = possibilities.iter().filter(|a| a.word == answer).count() == 1;
+    let known_answer = POSSIBLE_ANSWERS.iter().any(|a| a.word == answer);
     if !known_answer {
         println!();
         println_note(&format!(
@@ -284,6 +283,7 @@ fn main() -> ExitCode {
     }
 
     let mut knowledge = WordKnowledge::new();
+    let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
 
     println!("\n================= Guess Analysis =================\n");
     for (guess_index, guess) in guesses.into_iter().enumerate() {

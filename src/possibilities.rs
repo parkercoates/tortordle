@@ -1,13 +1,14 @@
 use crate::alphagram::Alphagram;
-use crate::word::{Letter, Word, WORD_LENGTH};
+use crate::word::{Word, WORD_LENGTH};
 
+#[derive(Clone)]
 pub struct PossibleAnswer {
     pub word: Word,
     pub alphagram: Alphagram,
 }
 
 impl PossibleAnswer {
-    pub fn from_word(word: Word) -> Self {
+    pub const fn from_word(word: Word) -> Self {
         Self {
             word,
             alphagram: Alphagram::from_word(word),
@@ -15,20 +16,22 @@ impl PossibleAnswer {
     }
 }
 
-static ANSWERS: [Letter; 13890] = *std::include_bytes!("WORDLE-ANSWERS.txt");
-
-const fn slice_as_array_ref<T, const N: usize>(slice: &[T]) -> &[T; N] {
-    assert!(N <= slice.len());
-    unsafe { &*slice.as_ptr().cast::<[T; N]>() }
+const fn possible_answer_from_line(line: &str) -> PossibleAnswer {
+    let bytes = line.as_bytes();
+    assert!(bytes.len() == WORD_LENGTH);
+    let mut word = [b' '; WORD_LENGTH];
+    let mut i = 0;
+    while i < WORD_LENGTH {
+        assert!(bytes[i].is_ascii_uppercase());
+        word[i] = bytes[i];
+        i += 1;
+    }
+    PossibleAnswer::from_word(word)
 }
 
-pub fn all_possible_answers() -> Vec<PossibleAnswer> {
-    ANSWERS
-        .chunks_exact(WORD_LENGTH + 1) // Five letters then a newline
-        .map(|chunk| {
-            let word: Word = *slice_as_array_ref(chunk);
-            assert!(word.iter().all(u8::is_ascii_uppercase));
-            PossibleAnswer::from_word(word)
-        })
-        .collect()
-}
+const RAW_ANSWERS: &str = konst::string::trim(include_str!("WORDLE-ANSWERS.txt"));
+
+pub const POSSIBLE_ANSWERS: &[PossibleAnswer] = &konst::iter::collect_const!(PossibleAnswer =>
+    konst::string::split(RAW_ANSWERS, '\n'),
+    map(possible_answer_from_line),
+);

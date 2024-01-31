@@ -21,7 +21,7 @@ impl Alphagram {
         }
     }
 
-    pub fn from_word(word: Word) -> Self {
+    pub const fn from_word(word: Word) -> Self {
         Self {
             slots: sorted5(word),
         }
@@ -138,11 +138,13 @@ impl Alphagram {
 
 // An optimal sorting network for 5 elements.
 // Taken from https://bertdobbelaere.github.io/sorting_networks.html#N5L9D5
-fn sorted5<T: PartialOrd>(mut arr: [T; 5]) -> [T; 5] {
+const fn sorted5(mut arr: [Letter; 5]) -> [Letter; 5] {
     macro_rules! compare_exchange {
         ($arr:ident, $i:literal, $j:literal) => {
             if $arr[$j] < $arr[$i] {
-                $arr.swap($i, $j);
+                let temp = $arr[$i];
+                $arr[$i] = $arr[$j];
+                $arr[$j] = temp;
             }
         };
     }
