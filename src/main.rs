@@ -8,7 +8,7 @@ mod slice_subset;
 mod word;
 
 use colored_guess::{color_guess, ColoredGuess};
-use guess_suggestions::{best_guesses, rand_top_guess, Points, ScoredGuess};
+use guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
 use itertools::Itertools;
 use knowledge::WordKnowledge;
 use possibilities::{all_possible_answers, PossibleAnswer};
@@ -194,10 +194,7 @@ pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
             break;
         }
         possibilities.retain(|p| knowledge.matches(p));
-        // In the case of ties, we take a random option from the tie, since that
-        // feels nicer than always just taking the first alphabetically. This
-        // means the output isn't always deterministic.
-        guess = rand_top_guess(&possibilities)?;
+        guess = top_guess(&possibilities)?;
     }
     Some(result)
 }
