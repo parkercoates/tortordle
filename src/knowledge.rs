@@ -59,6 +59,7 @@ impl LetterKnowledge {
 
 pub struct WordKnowledge {
     slots: [LetterKnowledge; WORD_LENGTH],
+    all_letters: Alphagram,
     yellows: Alphagram,
 }
 
@@ -67,6 +68,7 @@ impl WordKnowledge {
         const EMPTY_SLOT: LetterKnowledge = LetterKnowledge::new();
         Self {
             slots: [EMPTY_SLOT; WORD_LENGTH],
+            all_letters: Alphagram::new(),
             yellows: Alphagram::new(),
         }
     }
@@ -81,6 +83,7 @@ impl WordKnowledge {
         for (guess_letter, answer_letter, slot) in izip!(guess, answer, &mut result.slots) {
             if guess_letter == answer_letter {
                 slot.set_letter(guess_letter);
+                result.all_letters.add_letter(guess_letter);
             } else {
                 slot.remove_letter(guess_letter);
                 potential_yellows.add_letter(answer_letter);
@@ -91,6 +94,7 @@ impl WordKnowledge {
             if let IsNot(_) = result.slots[i] {
                 if potential_yellows.remove_letter(letter) {
                     result.yellows.add_letter(letter);
+                    result.all_letters.add_letter(letter);
                 } else if !result.yellows.contains(letter) {
                     result
                         .slots
@@ -103,16 +107,8 @@ impl WordKnowledge {
     }
 
     pub fn add_guess(&mut self, guess: &ColoredGuess) {
-        // First, we compute the alphagram of all letters we already knew were in the word.
-        let mut old_letters = self.yellows;
-        for slot in &self.slots {
-            if let Is(letter) = slot {
-                old_letters.add_letter(*letter);
-            }
-        }
-
-        // Second, we add information from the guess into the existing slots and build up new
-        // all-letter and yellow-letter alphagrams for this guess.
+        // First, we add information from the guess into the existing slots and build up the
+        // all-letter and yellow-letter alphagrams for _this_ guess.
         let mut new_letters = Alphagram::new();
         let mut new_yellows = Alphagram::new();
         for (i, (letter, color)) in guess.iter().enumerate() {
@@ -140,20 +136,20 @@ impl WordKnowledge {
             }
         }
 
-        // Third, we get the new all-letter alphagram by merging the previous alphagram with the
-        // alphagram for this guess, taking the higher count of the two for each letter.
+        // Second, we update our all_letter alphagram by merging the all-letter alphagram for this
+        // guess into it, taking the higher count of the two for each letter.
         //
         // Note that we can't just use `new_letters` because of non-hard mode players. `new_letters`
         // may be missing letters from previous guesses.
-        new_letters.merge_via_max(old_letters);
+        self.all_letters.merge_via_max(new_letters);
 
-        // Fourth, we compute the new set of yellows by starting with the new all-letter alphagram
-        // and removing all the greens.
+        // Third, we compute the set of yellows by removing the greens from the all-letter
+        // alphagram.
         //
         // Note that we can't just use `new_yellows` because of non-hard mode players. The new guess
         // could conflict with previous guesses, meaning `new_yellows` could contain letters that
-        // were green in previous guesses or be missing yellow letters from previous guesses.
-        self.yellows = new_letters;
+        // were green in previous guesses and/or missing yellow letters from previous guesses.
+        self.yellows = self.all_letters;
         for slot in &self.slots {
             if let Is(letter) = slot {
                 self.yellows.remove_letter(*letter);
@@ -162,7 +158,7 @@ impl WordKnowledge {
 
         // Finally, we search for yellow letters whose count exactly equals the number of slots
         // where that letter could possibly be put, allowing us to place the letter in those slots
-        // and remove it from yellows.
+        // and remove it from self.yellows.
         //
         // Note that this has to support the extremely rare case of having two yellows of the same
         // letter and only two slots they could match. (Something I've never seen happen in a real
@@ -212,7 +208,7 @@ impl WordKnowledge {
     // `check_for_conflicts(possibility.word).is_empty()`
     pub fn matches(&self, possibility: &PossibleAnswer) -> bool {
         std::iter::zip(&self.slots, possibility.word).all(|(s, l)| s.matches(l))
-            && possibility.alphagram.contains_other(self.yellows)
+            && possibility.alphagram.contains_other(self.all_letters)
     }
 
     pub fn formatted(&self) -> String {
@@ -286,5 +282,41 @@ fn add_indefinite_article_to_letter(letter: Letter) -> String {
     match c {
         'A' | 'E' | 'F' | 'H' | 'I' | 'L' | 'M' | 'N' | 'O' | 'R' | 'S' | 'X' => format!("an {c}"),
         _ => format!("a {c}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::color_guess;
+
+    fn w(s: &str) -> Word {
+        make_word(s).expect("Expected a word.")
+    }
+
+    fn g(word: &str, answer: &str) -> ColoredGuess {
+        color_guess(w(word), w(answer))
+    }
+
+    fn p(s: &str) -> PossibleAnswer {
+        PossibleAnswer::from_word(w(s))
+    }
+
+    #[test] // GH-1
+    fn same_letter_green_and_yellow() {
+        let mut k = WordKnowledge::new();
+        k.add_guess(&g("CHEER", "EMBER"));
+
+        assert!(k.matches(&p("METER")));
+        assert!(!k.matches(&p("DRYER")));
+    }
+
+    #[test] // GH-1: This scenario is extremely unlikely, but bugs is bugs.
+    fn same_letter_green_and_green_and_yellow() {
+        let mut k = WordKnowledge::new();
+        k.add_guess(&g("ERROR", "RARER"));
+
+        assert!(k.matches(&p("RARER")));
+        assert!(!k.matches(&p("PURER")));
     }
 }
