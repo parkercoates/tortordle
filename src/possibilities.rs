@@ -29,9 +29,8 @@ const fn possible_answer_from_line(line: &str) -> PossibleAnswer {
     PossibleAnswer::from_word(word)
 }
 
-const RAW_ANSWERS: &str = konst::string::trim(include_str!("WORDLE-ANSWERS.txt"));
-
+#[allow(clippy::forget_non_drop)]
 pub const POSSIBLE_ANSWERS: &[PossibleAnswer] = &konst::iter::collect_const!(PossibleAnswer =>
-    konst::string::split(RAW_ANSWERS, '\n'),
+    konst::string::split(konst::string::trim(include_str!("WORDLE-ANSWERS.txt")), '\n'),
     map(possible_answer_from_line),
 );

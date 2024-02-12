@@ -28,9 +28,9 @@ impl Alphagram {
     }
 
     pub fn add_letter(&mut self, mut letter: Letter) {
-        for slot in self.slots.iter_mut() {
+        for slot in &mut self.slots {
             if letter < *slot {
-                std::mem::swap(slot, &mut letter)
+                std::mem::swap(slot, &mut letter);
             }
         }
     }
@@ -45,7 +45,7 @@ impl Alphagram {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn letters(&self) -> impl Iterator<Item = &Letter> {
@@ -58,17 +58,16 @@ impl Alphagram {
 
     pub fn contains_other(self, other: Self) -> bool {
         let mut letters_to_find = other.letters();
-        let mut letter_to_find = match letters_to_find.next() {
-            Some(letter) => letter,
+        let Some(mut letter_to_find) = letters_to_find.next() else {
             // If there are no letters to find, we've already succeeded.
-            None => return true,
+            return true;
         };
 
         // We walk through `self` looking for the elements of `letters_to_find`. Because both are
         // sorted, we can do this in a single pass, considering only the smallest remaining element
         // of each alphagram.
         for letter in self.slots {
-            match letter.cmp(&letter_to_find) {
+            match letter.cmp(letter_to_find) {
                 Ordering::Greater => {
                     // The current letter is greater than `letter_to_find`, meaning we have no hope
                     // of ever finding it.
@@ -88,7 +87,7 @@ impl Alphagram {
             }
         }
         // We reached the end of `self` without finding all the letters.
-        return false;
+        false
     }
 
     pub fn merge_via_max(&mut self, other: Self) {

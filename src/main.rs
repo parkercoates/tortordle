@@ -240,7 +240,7 @@ pub struct CmdArgs {
 fn column_count_from_width() -> usize {
     let term_width = terminal_size().map(|(w, _h)| w.0).unwrap_or(80);
     // This calculation must be signed as it can go negative...
-    let column_count = (term_width as i32 - LABEL_WIDTH as i32 - 2) / (WORD_LENGTH as i32 + 1);
+    let column_count = (i32::from(term_width) - LABEL_WIDTH as i32 - 2) / (WORD_LENGTH as i32 + 1);
     // ...but that isn't a big deal as we need to clamp the value at 1 anyway.
     column_count.clamp(1, 32) as usize
 }

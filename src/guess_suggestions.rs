@@ -29,7 +29,7 @@ impl Points {
 
 impl fmt::Display for Points {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        (self.0 as f64 / Self::DENOMINATOR).fmt(f)
+        (f64::from(self.0) / Self::DENOMINATOR).fmt(f)
     }
 }
 
@@ -64,16 +64,16 @@ impl ScoredGuess {
         let mut weighted_count: usize = 0;
         for answer in possibilities {
             let colored_guess = color_guess(self.word, answer.word);
-            for (_, state) in colored_guess.iter().into_iter() {
+            for (_, state) in colored_guess.iter() {
                 match state {
                     GuessColor::Green => {
                         green_count += 1;
                         green_yellow_count += 1;
-                        weighted_count += 100
+                        weighted_count += 100;
                     }
                     GuessColor::Yellow => {
                         green_yellow_count += 1;
-                        weighted_count += 74
+                        weighted_count += 74;
                     }
                     GuessColor::Black => {}
                 }
