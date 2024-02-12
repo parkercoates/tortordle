@@ -309,8 +309,8 @@ fn main() -> ExitCode {
             for conflict in conflicts {
                 println_indented_note(&format!("    {}", &conflict.as_text()));
             }
-        } else if !possibilities.iter().any(|a| a.word == guess) {
-            println_indented_note("This guess was not in the list of remaining possibilities!");
+        } else if !POSSIBLE_ANSWERS.iter().any(|a| a.word == guess) {
+            println_indented_note("This guess is not one of the potential Wordle answers.");
         }
 
         knowledge.add_guess(&colored_guess);
