@@ -137,7 +137,7 @@ impl Alphagram {
 
 // An optimal sorting network for 5 elements.
 // Taken from https://bertdobbelaere.github.io/sorting_networks.html#N5L9D5
-const fn sorted5(mut arr: [Letter; 5]) -> [Letter; 5] {
+const fn sorted5(mut arr: Word) -> Word {
     macro_rules! compare_exchange {
         ($arr:ident, $i:literal, $j:literal) => {
             if $arr[$j] < $arr[$i] {

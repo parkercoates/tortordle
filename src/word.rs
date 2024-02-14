@@ -7,7 +7,7 @@ pub type Word = [Letter; WORD_LENGTH];
 pub fn make_word(input: &str) -> Option<Word> {
     let upper = input.to_ascii_uppercase();
     let bytes = upper.as_bytes();
-    let valid = bytes.len() == 5 && bytes.iter().all(Letter::is_ascii_uppercase);
+    let valid = bytes.len() == 5 && bytes.iter().all(u8::is_ascii_uppercase);
     if valid {
         bytes.try_into().ok()
     } else {
@@ -21,21 +21,21 @@ pub fn letter_to_string(letter: Letter) -> String {
 
 pub fn letters_to_string<'a, I>(letters: I) -> String
 where
-    I: IntoIterator<Item = &'a u8>,
+    I: IntoIterator<Item = &'a Letter>,
 {
     letters.into_iter().map(|l| *l as char).collect()
 }
 
 pub fn letters_with_fg<'a, I>(letters: I, color: Color) -> String
 where
-    I: IntoIterator<Item = &'a u8>,
+    I: IntoIterator<Item = &'a Letter>,
 {
     letters_to_string(letters).color(color).to_string()
 }
 
 pub fn letters_with_bg<'a, I>(letters: I, color: Color) -> String
 where
-    I: IntoIterator<Item = &'a u8>,
+    I: IntoIterator<Item = &'a Letter>,
 {
     letters_to_string(letters)
         .on_color(color)
