@@ -12,12 +12,9 @@ pub struct Alphagram {
 }
 
 impl Alphagram {
-    // This value is specifically chosen to be larger than b'Z'.
-    const NO_DATA: Letter = b'_';
-
     pub const fn new() -> Self {
         Self {
-            slots: [Self::NO_DATA; WORD_LENGTH],
+            slots: [Letter::NO_LETTER; WORD_LENGTH],
         }
     }
 
@@ -41,15 +38,15 @@ impl Alphagram {
                 for j in i..WORD_LENGTH - 1 {
                     self.slots[j] = self.slots[j + 1];
                 }
-                self.slots[WORD_LENGTH - 1] = Self::NO_DATA;
+                self.slots[WORD_LENGTH - 1] = Letter::NO_LETTER;
                 return true;
             }
         }
         false
     }
 
-    pub fn letters(&self) -> impl Iterator<Item = &Letter> {
-        self.slots.iter().take_while(|&l| *l != Self::NO_DATA)
+    pub fn letters(&self) -> impl Iterator<Item = Letter> {
+        self.slots.into_iter().take_while(Letter::is_valid)
     }
 
     pub fn contains(self, letter: Letter) -> bool {
@@ -67,7 +64,7 @@ impl Alphagram {
         // sorted, we can do this in a single pass, considering only the smallest remaining element
         // of each alphagram.
         for letter in self.slots {
-            match letter.cmp(letter_to_find) {
+            match letter.cmp(&letter_to_find) {
                 Ordering::Greater => {
                     // The current letter is greater than `letter_to_find`, meaning we have no hope
                     // of ever finding it.
@@ -91,7 +88,7 @@ impl Alphagram {
     }
 
     pub fn merge_via_max(&mut self, other: Self) {
-        let mut new = [b'_'; WORD_LENGTH];
+        let mut new = [Letter::NO_LETTER; WORD_LENGTH];
         let mut i = 0;
         let mut j = 0;
         let mut k = 0;
@@ -140,7 +137,7 @@ impl Alphagram {
 const fn sorted5(mut arr: Word) -> Word {
     macro_rules! compare_exchange {
         ($arr:ident, $i:literal, $j:literal) => {
-            if $arr[$j] < $arr[$i] {
+            if $arr[$j].index() < $arr[$i].index() {
                 let temp = $arr[$i];
                 $arr[$i] = $arr[$j];
                 $arr[$j] = temp;

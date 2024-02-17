@@ -1,8 +1,7 @@
 use crate::alphagram::Alphagram;
-use crate::word::{letter_to_string, letter_with_bg, Letter, Word, WORD_LENGTH};
+use crate::word::{letter_with_bg, Letter, Word, WORD_LENGTH};
 
 use colored::Color;
-use itertools::Itertools;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -36,10 +35,10 @@ impl ColoredGuess {
     pub fn formatted(&self) -> String {
         self.iter()
             .map(|(letter, state)| match state {
-                Black => letter_to_string(*letter),
+                Black => letter.to_string(),
                 _ => letter_with_bg(*letter, state.color()),
             })
-            .join("")
+            .collect()
     }
 
     pub fn weighted_green_yellow_count(&self) -> usize {
@@ -54,7 +53,7 @@ impl ColoredGuess {
 }
 
 pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
-    let mut slots = [(b' ', Black); WORD_LENGTH];
+    let mut slots = [(Letter::NO_LETTER, Black); WORD_LENGTH];
     let mut yellows = Alphagram::new();
     for (guess_letter, answer_letter, (letter, state)) in
         itertools::izip!(guess, answer, &mut slots)

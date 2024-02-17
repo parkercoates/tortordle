@@ -1,5 +1,5 @@
 use crate::alphagram::Alphagram;
-use crate::word::{Word, WORD_LENGTH};
+use crate::word::{Letter, Word, WORD_LENGTH};
 
 #[derive(Clone)]
 pub struct PossibleAnswer {
@@ -19,11 +19,11 @@ impl PossibleAnswer {
 const fn possible_answer_from_line(line: &str) -> PossibleAnswer {
     let bytes = line.as_bytes();
     assert!(bytes.len() == WORD_LENGTH);
-    let mut word = [b' '; WORD_LENGTH];
+    let mut word = [Letter::NO_LETTER; WORD_LENGTH];
     let mut i = 0;
     while i < WORD_LENGTH {
-        assert!(bytes[i].is_ascii_uppercase());
-        word[i] = bytes[i];
+        word[i] = Letter::from_ascii(bytes[i]);
+        assert!(word[i].is_valid());
         i += 1;
     }
     PossibleAnswer::from_word(word)

@@ -11,14 +11,16 @@ impl LetterSet {
     }
 
     pub fn insert(&mut self, letter: Letter) {
-        self.bits |= 1 << (letter - b'A');
+        self.bits |= 1 << letter.index();
     }
 
     pub const fn contains(self, letter: Letter) -> bool {
-        self.bits & (1 << (letter - b'A')) != 0
+        self.bits & (1 << letter.index()) != 0
     }
 
-    pub fn letters(self) -> Vec<Letter> {
-        (b'A'..=b'Z').filter(|&l| self.contains(l)).collect()
+    pub fn letters(self) -> impl Iterator<Item = Letter> {
+        (b'A'..=b'Z')
+            .map(Letter::from_ascii)
+            .filter(move |&l| self.contains(l))
     }
 }

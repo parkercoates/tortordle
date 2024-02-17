@@ -35,14 +35,14 @@ impl LetterKnowledge {
             Is(letter) => letter_with_fg(*letter, Color::Green),
             IsNot(set) => {
                 letters_with_fg(
-                    yellows.letters().dedup().filter(|&&l| !set.contains(l)),
+                    yellows.letters().dedup().filter(|&l| !set.contains(l)),
                     Color::Yellow,
-                ) + &letters_with_fg(&set.letters(), Color::Red)
+                ) + &letters_with_fg(set.letters(), Color::Red)
             }
         }
     }
 
-    const fn matches(&self, letter: Letter) -> bool {
+    fn matches(&self, letter: Letter) -> bool {
         match self {
             Is(known_letter) => letter == *known_letter,
             IsNot(set) => !set.contains(letter),
@@ -164,7 +164,7 @@ impl WordKnowledge {
         // letter and only two slots they could match. (Something I've never seen happen in a real
         // game.)
         const MAX_POTENTIAL_SLOTS: usize = WORD_LENGTH - 1;
-        for (count, &letter) in self.yellows.clone().letters().dedup_with_count() {
+        for (count, letter) in self.yellows.letters().dedup_with_count() {
             let potential_slots = self
                 .slots
                 .iter_mut()
@@ -195,8 +195,8 @@ impl WordKnowledge {
                 }
             }
         }
-        for (count_needed, &letter) in self.yellows.letters().dedup_with_count() {
-            let count_found = word.into_iter().filter(|l| *l == letter).count();
+        for (count_needed, letter) in self.yellows.letters().dedup_with_count() {
+            let count_found = word.iter().filter(|&&l| l == letter).count();
             if count_found < count_needed {
                 conflicts.push(Conflict::Missing(letter, count_needed));
             }
@@ -226,7 +226,7 @@ impl WordKnowledge {
             .map(|(letter, slot)| match slot {
                 Is(known_letter) if letter == *known_letter => letter_with_fg(letter, Color::Green),
                 _ if self.yellows.contains(letter) => letter_with_fg(letter, Color::Yellow),
-                _ => letter_to_string(letter),
+                _ => letter.to_string(),
             })
             .join("")
     }
@@ -259,7 +259,7 @@ impl Conflict {
                         add_indefinite_article_to_letter(letter)
                     )
                 } else {
-                    format!("The word must contain {needed} {}'s.", letter as char)
+                    format!("The word must contain {needed} {}'s.", letter.char())
                 }
             }
         }
@@ -278,7 +278,7 @@ fn index_to_ordinal(index: usize) -> &'static str {
 }
 
 fn add_indefinite_article_to_letter(letter: Letter) -> String {
-    let c = letter as char;
+    let c = letter.char();
     match c {
         'A' | 'E' | 'F' | 'H' | 'I' | 'L' | 'M' | 'N' | 'O' | 'R' | 'S' | 'X' => format!("an {c}"),
         _ => format!("a {c}"),

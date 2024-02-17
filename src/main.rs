@@ -135,7 +135,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             if suggestion.word == actual_guess {
                 print!(
                     "{:^WORD_LENGTH$} ",
-                    letters_to_string(&suggestion.word).on_color(Color::Blue)
+                    letters_to_string(suggestion.word).on_color(Color::Blue)
                 );
             } else {
                 // We can't use COLUMN_WIDTH here because the formatting codes
@@ -181,7 +181,13 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
 }
 
 pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
-    const STARTING_GUESS: Word = [b'R', b'A', b'I', b'S', b'E'];
+    const STARTING_GUESS: Word = [
+        Letter::from_ascii(b'R'),
+        Letter::from_ascii(b'A'),
+        Letter::from_ascii(b'I'),
+        Letter::from_ascii(b'S'),
+        Letter::from_ascii(b'E'),
+    ];
     let mut guess = STARTING_GUESS;
     let mut knowledge = WordKnowledge::new();
     let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
@@ -277,7 +283,7 @@ fn main() -> ExitCode {
         println!();
         println_note(&format!(
             "{} is not in the list of known potential answers.",
-            letters_to_string(&answer)
+            letters_to_string(answer)
         ));
         println_note("That shouldn't happen. Analysis is unlikely to go well.");
     }
@@ -323,7 +329,7 @@ fn main() -> ExitCode {
     }
 
     if failed {
-        println_label_value("Solution", &letters_with_bg(&answer, Color::Green));
+        println_label_value("Solution", &letters_with_bg(answer, Color::Green));
     }
 
     // Let the algorithm attempt solve it itself.
