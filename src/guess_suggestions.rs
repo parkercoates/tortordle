@@ -41,8 +41,9 @@ pub struct ScoredGuess {
     pub remaining_words: Points,
     pub avg_score: Points,
 
-    pub score: isize,
     pub rank: usize,
+
+    score: isize,
 }
 
 impl ScoredGuess {
