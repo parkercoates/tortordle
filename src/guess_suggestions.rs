@@ -217,18 +217,17 @@ pub fn best_guesses(
     const TO_KEEP_FROM_COLOR_COUNT: usize = 100;
     const TO_KEEP_FROM_REMAINING_WORDS: usize = 32;
 
-    // Turn all possibilities into ScoredGuesses, but don't compute any scores
-    // yet.
-    let mut guesses: Vec<ScoredGuess> = possibilities
-        .iter()
-        .map(|p| ScoredGuess::init_with_word(p.word))
+    // Turn all possibilities into ScoredGuesses, but only compute the average
+    // green and yellow counts first as this can be done very quickly and is a
+    // rough, but good indicator of the quality of a guess.
+    let mut guesses: Vec<_> = possibilities
+        .par_iter()
+        .map(|p| {
+            let mut g = ScoredGuess::init_with_word(p.word);
+            g.compute_avg_color_counts(possibilities);
+            g
+        })
         .collect();
-
-    // Compute the average green and yellow counts first as this can be done
-    // very quickly and is a good rough indicator of the quality of a guess.
-    guesses
-        .par_iter_mut()
-        .for_each(|guess| guess.compute_avg_color_counts(possibilities));
 
     // Keep just the top `TO_KEEP_FROM_COLOR_COUNT` guesses.
     keep_top_scores(&mut guesses, TO_KEEP_FROM_COLOR_COUNT);
