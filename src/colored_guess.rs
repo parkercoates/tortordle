@@ -1,5 +1,5 @@
 use crate::alphagram::Alphagram;
-use crate::word::{letter_with_bg, Letter, Word, WORD_LENGTH};
+use crate::word::{letter_with_bg, Letter, Word};
 
 use colored::Color;
 
@@ -24,7 +24,7 @@ impl GuessColor {
 }
 
 pub struct ColoredGuess {
-    slots: [(Letter, GuessColor); WORD_LENGTH],
+    slots: [(Letter, GuessColor); Word::LENGTH],
 }
 
 impl ColoredGuess {
@@ -53,7 +53,7 @@ impl ColoredGuess {
 }
 
 pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
-    let mut slots = [(Letter::NO_LETTER, Black); WORD_LENGTH];
+    let mut slots = [(Letter::NO_LETTER, Black); Word::LENGTH];
     let mut yellows = Alphagram::new();
     for (guess_letter, answer_letter, (letter, state)) in
         itertools::izip!(guess, answer, &mut slots)

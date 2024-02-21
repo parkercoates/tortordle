@@ -58,7 +58,7 @@ impl LetterKnowledge {
 }
 
 pub struct WordKnowledge {
-    slots: [LetterKnowledge; WORD_LENGTH],
+    slots: [LetterKnowledge; Word::LENGTH],
     all_letters: Alphagram,
     yellows: Alphagram,
 }
@@ -67,7 +67,7 @@ impl WordKnowledge {
     pub const fn new() -> Self {
         const EMPTY_SLOT: LetterKnowledge = LetterKnowledge::new();
         Self {
-            slots: [EMPTY_SLOT; WORD_LENGTH],
+            slots: [EMPTY_SLOT; Word::LENGTH],
             all_letters: Alphagram::new(),
             yellows: Alphagram::new(),
         }
@@ -163,7 +163,7 @@ impl WordKnowledge {
         // Note that this has to support the extremely rare case of having two yellows of the same
         // letter and only two slots they could match. (Something I've never seen happen in a real
         // game.)
-        const MAX_POTENTIAL_SLOTS: usize = WORD_LENGTH - 1;
+        const MAX_POTENTIAL_SLOTS: usize = Word::LENGTH - 1;
         for (count, letter) in self.yellows.letters().dedup_with_count() {
             let potential_slots = self
                 .slots
@@ -181,7 +181,7 @@ impl WordKnowledge {
 
     pub fn check_for_conflicts(&self, word: Word) -> Vec<Conflict> {
         let mut conflicts = Vec::new();
-        for (i, letter, slot) in izip!(0..WORD_LENGTH, word, &self.slots) {
+        for (i, letter, slot) in izip!(0..Word::LENGTH, word, &self.slots) {
             match slot {
                 Is(known) => {
                     if *known != letter {
@@ -291,7 +291,7 @@ mod tests {
     use crate::color_guess;
 
     fn w(s: &str) -> Word {
-        make_word(s).expect("Expected a word.")
+        Word::expect_from_str(s)
     }
 
     fn g(word: &str, answer: &str) -> ColoredGuess {

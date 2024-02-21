@@ -1,4 +1,4 @@
-use crate::word::{Letter, Word, WORD_LENGTH};
+use crate::word::{Letter, Word};
 use std::cmp::Ordering;
 
 // An alphagram is the set of letters, listed in alphabetical order. The term is
@@ -8,19 +8,21 @@ use std::cmp::Ordering;
 
 #[derive(Clone, Copy)]
 pub struct Alphagram {
-    slots: [Letter; WORD_LENGTH],
+    slots: [Letter; Self::LENGTH],
 }
 
 impl Alphagram {
+    const LENGTH: usize = Word::LENGTH;
+
     pub const fn new() -> Self {
         Self {
-            slots: [Letter::NO_LETTER; WORD_LENGTH],
+            slots: [Letter::NO_LETTER; Self::LENGTH],
         }
     }
 
     pub const fn from_word(word: Word) -> Self {
         Self {
-            slots: sorted5(word),
+            slots: sorted5(word.letters),
         }
     }
 
@@ -33,12 +35,12 @@ impl Alphagram {
     }
 
     pub fn remove_letter(&mut self, letter: Letter) -> bool {
-        for i in 0..WORD_LENGTH {
+        for i in 0..Self::LENGTH {
             if self.slots[i] == letter {
-                for j in i..WORD_LENGTH - 1 {
+                for j in i..Self::LENGTH - 1 {
                     self.slots[j] = self.slots[j + 1];
                 }
-                self.slots[WORD_LENGTH - 1] = Letter::NO_LETTER;
+                self.slots[Self::LENGTH - 1] = Letter::NO_LETTER;
                 return true;
             }
         }
@@ -88,11 +90,11 @@ impl Alphagram {
     }
 
     pub fn merge_via_max(&mut self, other: Self) {
-        let mut new = [Letter::NO_LETTER; WORD_LENGTH];
+        let mut new = [Letter::NO_LETTER; Self::LENGTH];
         let mut i = 0;
         let mut j = 0;
         let mut k = 0;
-        while k < WORD_LENGTH {
+        while k < Self::LENGTH {
             match self.slots[i].cmp(&other.slots[j]) {
                 std::cmp::Ordering::Equal => {
                     new[k] = self.slots[i];
@@ -112,15 +114,15 @@ impl Alphagram {
                 }
             }
 
-            if i == WORD_LENGTH {
-                while j < WORD_LENGTH && k < WORD_LENGTH {
+            if i == Self::LENGTH {
+                while j < Self::LENGTH && k < Self::LENGTH {
                     new[k] = other.slots[j];
                     j += 1;
                     k += 1;
                 }
                 break;
-            } else if j == WORD_LENGTH {
-                while i < WORD_LENGTH && k < WORD_LENGTH {
+            } else if j == Self::LENGTH {
+                while i < Self::LENGTH && k < Self::LENGTH {
                     new[k] = self.slots[i];
                     i += 1;
                     k += 1;
@@ -134,7 +136,7 @@ impl Alphagram {
 
 // An optimal sorting network for 5 elements.
 // Taken from https://bertdobbelaere.github.io/sorting_networks.html#N5L9D5
-const fn sorted5(mut arr: Word) -> Word {
+const fn sorted5(mut arr: [Letter; 5]) -> [Letter; 5] {
     macro_rules! compare_exchange {
         ($arr:ident, $i:literal, $j:literal) => {
             if $arr[$j].index() < $arr[$i].index() {

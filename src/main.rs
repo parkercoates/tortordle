@@ -64,7 +64,7 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
             return None;
         }
 
-        let word = make_word(input);
+        let word = Word::from_str(input);
         if word.is_none() {
             println!("{input} is not a single word of five A-Z letters!");
             continue;
@@ -115,6 +115,7 @@ fn print_remaining_words(
 }
 
 fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, actual_guess: Word) {
+    const COLUMN_WIDTH: usize = Word::LENGTH;
     // If there are two suggestions or less, they are all equally good. If the
     // last suggestion's rank is 1, they are all tied and therefore equally
     // good. Regardless, let's not bother showing any suggested guesses.
@@ -122,7 +123,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
     if !all_equally_good {
         print_indent();
         for suggestion in suggestions {
-            let mut item = format!("{:^WORD_LENGTH$}", suggestion.rank);
+            let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank);
             if suggestion.word == actual_guess {
                 item = item.on_color(Color::Blue).to_string();
             }
@@ -134,7 +135,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
         for suggestion in suggestions {
             if suggestion.word == actual_guess {
                 print!(
-                    "{:^WORD_LENGTH$} ",
+                    "{:^COLUMN_WIDTH$} ",
                     letters_to_string(suggestion.word).on_color(Color::Blue)
                 );
             } else {
@@ -155,7 +156,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             print_label(label);
             for suggestion in suggestions {
                 let value = getter(suggestion);
-                let mut item = format!("{:^WORD_LENGTH$.*}", Points::DECIMAL_PLACES, value,);
+                let mut item = format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value,);
                 if value == best_value {
                     item = item.color(Color::Green).to_string();
                 }
@@ -181,13 +182,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
 }
 
 pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
-    const STARTING_GUESS: Word = [
-        Letter::from_ascii(b'R'),
-        Letter::from_ascii(b'A'),
-        Letter::from_ascii(b'I'),
-        Letter::from_ascii(b'S'),
-        Letter::from_ascii(b'E'),
-    ];
+    const STARTING_GUESS: Word = Word::expect_from_str("RAISE");
     let mut guess = STARTING_GUESS;
     let mut knowledge = WordKnowledge::new();
     let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
@@ -206,7 +201,7 @@ pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
 }
 
 fn parse_word_from_arg(s: &str) -> Result<Word, String> {
-    make_word(s).ok_or(format!("'{s}' is not a word of five A-Z letters!"))
+    Word::from_str(s).ok_or(format!("'{s}' is not a word of five A-Z letters!"))
 }
 
 #[derive(Parser)]
@@ -246,7 +241,7 @@ pub struct CmdArgs {
 fn column_count_from_width() -> usize {
     let term_width = terminal_size().map(|(w, _h)| w.0).unwrap_or(80);
     // This calculation must be signed as it can go negative...
-    let column_count = (i32::from(term_width) - LABEL_WIDTH as i32 - 2) / (WORD_LENGTH as i32 + 1);
+    let column_count = (i32::from(term_width) - LABEL_WIDTH as i32 - 2) / (Word::LENGTH as i32 + 1);
     // ...but that isn't a big deal as we need to clamp the value at 1 anyway.
     column_count.clamp(1, 32) as usize
 }

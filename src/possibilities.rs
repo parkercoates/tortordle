@@ -1,5 +1,5 @@
 use crate::alphagram::Alphagram;
-use crate::word::{Letter, Word, WORD_LENGTH};
+use crate::word::Word;
 
 #[derive(Clone)]
 pub struct PossibleAnswer {
@@ -16,21 +16,8 @@ impl PossibleAnswer {
     }
 }
 
-const fn possible_answer_from_line(line: &str) -> PossibleAnswer {
-    let bytes = line.as_bytes();
-    assert!(bytes.len() == WORD_LENGTH);
-    let mut word = [Letter::NO_LETTER; WORD_LENGTH];
-    let mut i = 0;
-    while i < WORD_LENGTH {
-        word[i] = Letter::from_ascii(bytes[i]);
-        assert!(word[i].is_valid());
-        i += 1;
-    }
-    PossibleAnswer::from_word(word)
-}
-
 #[allow(clippy::forget_non_drop)]
 pub const POSSIBLE_ANSWERS: &[PossibleAnswer] = &konst::iter::collect_const!(PossibleAnswer =>
     konst::string::split(konst::string::trim(include_str!("WORDLE-ANSWERS.txt")), '\n'),
-    map(possible_answer_from_line),
+    map(|line| PossibleAnswer::from_word(Word::expect_from_str(line))),
 );
