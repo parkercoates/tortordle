@@ -210,10 +210,34 @@ fn keep_top_scores(scores: &mut Vec<ScoredGuess>, count: usize) {
     keep_top(scores, count, |a, b| a.score.cmp(&b.score));
 }
 
+fn keep_top_scores_favoring_user_guess(
+    guesses: &mut Vec<ScoredGuess>,
+    count: usize,
+    user_guess: Option<Word>,
+) {
+    // If a user guess was provided, order it first in the event of a tie. Users like to see that
+    // blue column as close to the left edge as possible, and in the event of a tie, I see no reason
+    // not to indulge them.
+    if let Some(user_guess) = user_guess {
+        keep_top(guesses, count, |a, b| {
+            a.score.cmp(&b.score).then_with(|| {
+                if a.word == user_guess {
+                    Ordering::Less
+                } else {
+                    Ordering::Equal
+                }
+            })
+        });
+    } else {
+        keep_top_scores(guesses, count);
+    }
+}
+
 pub fn best_guesses(
     possibilities: &[PossibleAnswer],
     count: usize,
     guesses_so_far: usize,
+    user_guess: Option<Word>,
 ) -> Vec<ScoredGuess> {
     const TO_KEEP_FROM_COLOR_COUNT: usize = 100;
     const TO_KEEP_FROM_REMAINING_WORDS: usize = 32;
@@ -251,7 +275,7 @@ pub fn best_guesses(
     }
 
     // Keep just the top `count` guesses.
-    keep_top_scores(&mut guesses, count);
+    keep_top_scores_favoring_user_guess(&mut guesses, count, user_guess);
 
     // Assign ranks to the guesses, detecting any ties.
     compute_ranks(&mut guesses);
@@ -260,7 +284,7 @@ pub fn best_guesses(
 }
 
 pub fn top_guess(possibilities: &[PossibleAnswer]) -> Option<Word> {
-    best_guesses(possibilities, 1, 0)
+    best_guesses(possibilities, 1, 0, None)
         .first()
         .map(|guess| guess.word)
 }

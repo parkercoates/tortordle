@@ -289,7 +289,7 @@ fn main() -> ExitCode {
     println!("\n================= Guess Analysis =================\n");
     for (guess_index, guess) in guesses.into_iter().enumerate() {
         if cmd_args.suggest_first_guess || guess_index != 0 {
-            let suggestions = best_guesses(&possibilities, column_count, guess_index);
+            let suggestions = best_guesses(&possibilities, column_count, guess_index, Some(guess));
             print_suggestions(&suggestions, &knowledge, guess);
         }
 
