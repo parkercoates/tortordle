@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- This file was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="application/xml+xhtml; charset=UTF-8"/>
+<title>Tortordle: The Wordle Game Analyser</title>
+<style type="text/css">
+    body { color: white; background-color: black; font-size: larger; }
+    input { color: white; background-color: black; font-family: monospace, monospace; }
+    input[type="text"] { text-transform: uppercase; width: 10ch; text-align: center; border: 2px solid white; }
+</style>
+<script>
+window.onload = function() {
+  document.querySelector("#form").addEventListener("submit", function(e) {
+    let query=""
+    for(let i = 1; i <= 7; i += 1) {
+      let word = document.querySelector("#word" + i).value;
+      if(word) {
+        if(query)
+          query += "+";
+        query += word;
+      }
+    }
+    window.location = "cgi-bin/analysis?" + query;
+    e.preventDefault();    //stop form from submitting
+  });
+};
+</script>
+</head>
+<body>
+<pre>
+====== Tortordle: The Wordle Game Analyser ======
+<form id="form">
+  <label>          Guess #1:</label> <input type="text" id="word1" required pattern="[a-zA-Z]{5}"/>
+  <label>          Guess #2:</label> <input type="text" id="word2" pattern="[a-zA-Z]{5}"/>
+  <label>          Guess #3:</label> <input type="text" id="word3" pattern="[a-zA-Z]{5}"/>
+  <label>          Guess #4:</label> <input type="text" id="word4" pattern="[a-zA-Z]{5}"/>
+  <label>          Guess #5:</label> <input type="text" id="word5" pattern="[a-zA-Z]{5}"/>
+  <label>          Guess #6:</label> <input type="text" id="word6" pattern="[a-zA-Z]{5}"/>
+  <label>            Answer:</label> <input type="text" id="word7" pattern="[a-zA-Z]{5}"/>
+                 
+  <label>                   </label> <input type="submit" value="Analyse"/>
+</form>
+</pre>
+</body>
+</html>
