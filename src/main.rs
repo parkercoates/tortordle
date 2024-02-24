@@ -183,9 +183,8 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
     }
 }
 
-pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
-    const STARTING_GUESS: Word = Word::expect_from_str("RAISE");
-    let mut guess = STARTING_GUESS;
+fn attempt_optimal_solve(starting_guess: Word, answer: Word) -> Option<Vec<ColoredGuess>> {
+    let mut guess = starting_guess;
     let mut knowledge = WordKnowledge::new();
     let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
     let mut result = Vec::<ColoredGuess>::new();
@@ -200,6 +199,46 @@ pub fn attempt_optimal_solve(answer: Word) -> Option<Vec<ColoredGuess>> {
         guess = top_guess(&possibilities)?;
     }
     Some(result)
+}
+
+fn attempt_to_solve_all(starting_guess: Word) {
+    let attempt_and_print = |word: &Word| {
+        let guesses = attempt_optimal_solve(starting_guess, *word).unwrap();
+        println_label_value(
+            &word.to_string(),
+            format_args!(
+                "{} {}",
+                guesses.len(),
+                guesses.iter().map(ColoredGuess::formatted).join(" -> ")
+            ),
+        );
+        guesses
+    };
+
+    const TOTAL_COUNT: usize = POSSIBLE_ANSWERS.len();
+    println!("\n===== Attempting All Possible Games =====\n");
+    let mut failures = Vec::new();
+    let mut total_guesses = 0usize;
+    for PossibleAnswer { word, .. } in POSSIBLE_ANSWERS {
+        let guesses = attempt_and_print(word);
+        total_guesses += guesses.len();
+        if MAX_GUESSES < guesses.len() {
+            failures.push(*word);
+        }
+    }
+    let success_count = TOTAL_COUNT - failures.len();
+    let success_rate = 100.0 * success_count as f64 / TOTAL_COUNT as f64;
+    let avg_guesses = total_guesses as f64 / TOTAL_COUNT as f64;
+    println!();
+    println_label_value(
+        "Success Rate",
+        format_args!("{success_count}/{TOTAL_COUNT} = {success_rate:.3}%"),
+    );
+    println_label_value("Average Guesses", format_args!("{avg_guesses:.3}"));
+    println_label_value("Failures", failures.len());
+    for failure in &failures {
+        attempt_and_print(failure);
+    }
 }
 
 fn parse_word_from_arg(s: &str) -> Result<Word, String> {
@@ -233,6 +272,14 @@ pub struct CmdArgs {
     )]
     pub columns: Option<u8>,
 
+    #[arg(
+        long,
+        value_name = "STARTING_WORD",
+        value_parser = parse_word_from_arg,
+        help = "Attempt to solve every possible Wordle game from the given starting word.",
+        conflicts_with_all = ["words", "columns", "suggest-first-guess"]
+    )]
+    pub solve_all: Option<Word>,
     #[arg(long, help = "Force colorised output on")]
     pub color: bool,
 
@@ -261,6 +308,12 @@ fn main() -> ExitCode {
         .columns
         .map(usize::from)
         .unwrap_or_else(column_count_from_width);
+
+    // --solve-all is a separate mode, independent of the game analyser.
+    if let Some(starting_guess) = cmd_args.solve_all {
+        attempt_to_solve_all(starting_guess);
+        return ExitCode::SUCCESS;
+    }
 
     let words = cmd_args.words.unwrap_or_else(prompt_for_words);
     if words.is_empty() {
@@ -331,7 +384,8 @@ fn main() -> ExitCode {
     // Let the algorithm attempt solve it itself.
     println!();
     print_label("My Best Attempt");
-    if let Some(guesses) = attempt_optimal_solve(answer) {
+    const STARTING_GUESS: Word = Word::expect_from_str("RAISE");
+    if let Some(guesses) = attempt_optimal_solve(STARTING_GUESS, answer) {
         println!(
             "{}",
             &guesses.iter().map(ColoredGuess::formatted).join(" -> "),
@@ -340,9 +394,7 @@ fn main() -> ExitCode {
             println_indented_note("I failed.");
         }
     } else {
-        println_note(
-            "Something went wrong while attempting to find an optimal solution to the puzzle.",
-        );
+        println_note("Something went wrong while attempting to find an optimal solution.");
     }
 
     ExitCode::SUCCESS
