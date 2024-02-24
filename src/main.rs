@@ -17,6 +17,7 @@ use word::*;
 
 use clap::{value_parser, Parser};
 use colored::{Color, Colorize};
+use std::fmt::Display;
 use std::{io::Write, process::ExitCode};
 
 const MAX_GUESSES: usize = 6;
@@ -28,16 +29,16 @@ fn print_indent() {
     print!("{:>LABEL_WIDTH$}  ", "");
 }
 
-fn print_label(text: &str) {
-    print!("{text:>LABEL_WIDTH$}: ",);
+fn print_label(label: &str) {
+    print!("{label:>LABEL_WIDTH$}: ",);
 }
 
-fn println_label_value(text: &str, value: &str) {
-    println!("{text:>LABEL_WIDTH$}: {value}",);
+fn println_label_value<V: Display>(label: &str, value: V) {
+    println!("{label:>LABEL_WIDTH$}: {value}",);
 }
 
 fn println_note(text: &str) {
-    println!("{}", &str_with_fg(text, Color::Magenta),);
+    println!("{}", &text.color(Color::Magenta));
 }
 
 fn println_indented_note(text: &str) {
@@ -97,7 +98,7 @@ fn print_remaining_words(
         0 => println_indented_note("There are no words remaining! Something went wrong!"),
         1 => println_label_value(
             "1 word remains",
-            &knowledge.format_word(possibilities[0].word),
+            knowledge.format_word(possibilities[0].word),
         ),
         _ => {
             for (i, possibility) in possibilities.iter().enumerate() {
@@ -123,9 +124,9 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
     if !all_equally_good {
         print_indent();
         for suggestion in suggestions {
-            let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank);
+            let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank).normal();
             if suggestion.word == actual_guess {
-                item = item.on_color(Color::Blue).to_string();
+                item = item.on_color(Color::Blue);
             }
             print!("{item} ");
         }
@@ -136,7 +137,7 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             if suggestion.word == actual_guess {
                 print!(
                     "{:^COLUMN_WIDTH$} ",
-                    letters_to_string(suggestion.word).on_color(Color::Blue)
+                    suggestion.word.to_string().on_color(Color::Blue)
                 );
             } else {
                 // We can't use COLUMN_WIDTH here because the formatting codes
@@ -156,12 +157,13 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             print_label(label);
             for suggestion in suggestions {
                 let value = getter(suggestion);
-                let mut item = format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value,);
+                let mut item =
+                    format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value).normal();
                 if value == best_value {
-                    item = item.color(Color::Green).to_string();
+                    item = item.color(Color::Green);
                 }
                 if suggestion.word == actual_guess {
-                    item = item.on_color(Color::Blue).to_string();
+                    item = item.on_color(Color::Blue);
                 }
                 print!("{item} ");
             }
@@ -277,8 +279,7 @@ fn main() -> ExitCode {
     if !known_answer {
         println!();
         println_note(&format!(
-            "{} is not in the list of known potential answers.",
-            letters_to_string(answer)
+            "{answer} is not in the list of known potential answers."
         ));
         println_note("That shouldn't happen. Analysis is unlikely to go well.");
     }
@@ -296,7 +297,7 @@ fn main() -> ExitCode {
         let colored_guess = color_guess(guess, answer);
         println_label_value(
             &format!("Guess #{}", guess_index + 1),
-            &colored_guess.formatted(),
+            colored_guess.formatted(),
         );
 
         if guess == answer {
@@ -315,7 +316,7 @@ fn main() -> ExitCode {
         }
 
         knowledge.add_guess(&colored_guess);
-        println_label_value("Solve State", &knowledge.formatted());
+        println_label_value("Solve State", knowledge.formatted());
 
         possibilities.retain(|p| knowledge.matches(p));
         print_remaining_words(&possibilities, &knowledge, column_count);
@@ -324,7 +325,7 @@ fn main() -> ExitCode {
     }
 
     if failed {
-        println_label_value("Solution", &letters_with_bg(answer, Color::Green));
+        println_label_value("Solution", letters_with_bg(answer, Color::Green));
     }
 
     // Let the algorithm attempt solve it itself.

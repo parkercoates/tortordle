@@ -96,7 +96,16 @@ impl<'a> IntoIterator for &'a Word {
     }
 }
 
-pub fn letters_to_string<I>(letters: I) -> String
+impl Display for Word {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for letter in self.letters {
+            f.write_char(letter.char())?;
+        }
+        Ok(())
+    }
+}
+
+fn letters_to_string<I>(letters: I) -> String
 where
     I: IntoIterator<Item = Letter>,
 {
@@ -130,8 +139,4 @@ pub fn letter_with_bg(letter: Letter, color: Color) -> String {
         .on_color(color)
         .color(Color::Black)
         .to_string()
-}
-
-pub fn str_with_fg(text: &str, color: Color) -> String {
-    String::from(text).color(color).to_string()
 }
