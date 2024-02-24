@@ -327,6 +327,7 @@ fn main() -> ExitCode {
     } else {
         (*words.last().unwrap(), words)
     };
+    let starting_guess = *guesses.first().unwrap();
 
     let known_answer = POSSIBLE_ANSWERS.iter().any(|a| a.word == answer);
     if !known_answer {
@@ -384,8 +385,7 @@ fn main() -> ExitCode {
     // Let the algorithm attempt solve it itself.
     println!();
     print_label("My Best Attempt");
-    const STARTING_GUESS: Word = Word::expect_from_str("RAISE");
-    if let Some(guesses) = attempt_optimal_solve(STARTING_GUESS, answer) {
+    if let Some(guesses) = attempt_optimal_solve(starting_guess, answer) {
         println!(
             "{}",
             &guesses.iter().map(ColoredGuess::formatted).join(" -> "),
