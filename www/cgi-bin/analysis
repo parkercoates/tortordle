@@ -13,7 +13,7 @@ echo "Content-Type: text/html
 
 <head>
     <meta charset='utf-8'>
-    <title>$TITLE</title>
+    <title>Tortordle: $TITLE</title>
 </head>
 <body style='color:white; background-color:black;'>
     <pre>"
