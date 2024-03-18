@@ -6,6 +6,8 @@ TITLE=$(echo "${ARGS[@]}" | tr '[:lower:]' '[:upper:]')
 
 START=$(date +%s%N)
 
+ENCRYPTED=$(echo "$QUERY_STRING" | openssl enc -e -des3 -base64 -pass pass:tortordle -pbkdf2)
+
 echo "Content-Type: text/html
 
 <!DOCTYPE html>
@@ -22,6 +24,8 @@ echo "Content-Type: text/html
 | aha --black --title "$TITLE" --no-header
 
 echo "
+
+                        <a href='./no-spoiler?$ENCRYPTED' style='color:white'>Spoiler-Free Link</a>
 
                         &lt;&lt; <a href='..' style='color:white'>Analyse Another Game</a>
     </pre>

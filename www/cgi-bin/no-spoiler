@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+DECRYPTED=$(echo "$QUERY_STRING" | openssl enc -d -des3 -base64 -pass pass:tortordle -pbkdf2)
+
+echo "Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='refresh' content='1; url=./analysis?$DECRYPTED'>
+    <title>Tortordle: Spoiler-Free Link</title>
+</head>
+<body style='color:white; background-color:black'>
+    <pre>
+
+                        <a href='./analysis?$DECRYPTED' style='color:white'>Redirecting...</a>
+    </pre>
+</body>
+</html>"
