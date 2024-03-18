@@ -6,9 +6,27 @@ TITLE=$(echo "${ARGS[@]}" | tr '[:lower:]' '[:upper:]')
 
 START=$(date +%s%N)
 
-echo 'Content-Type: text/html'
-echo ''
-../target/release/tortordle --color --columns=12 --words "${ARGS[@]}" | aha --black --title "$TITLE" -s
+echo "Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='utf-8'>
+    <title>$TITLE</title>
+</head>
+<body style='color:white; background-color:black;'>
+    <pre>"
+
+../target/release/tortordle --color --columns=12 --words "${ARGS[@]}" \
+| aha --black --title "$TITLE" --no-header
+
+echo "
+
+                        &lt;&lt; <a href='..' style='color:white'>Analyse Another Game</a>
+    </pre>
+</body>
+</html>"
 
 ELAPSED=$((($(date +%s%N) - $START)/1000000))
 echo -e "$(date -Iseconds)\t${REMOTE_ADDR}\t${ELAPSED}ms\t${QUERY_STRING}" >> analyses.log
