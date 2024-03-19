@@ -16,8 +16,31 @@ echo "Content-Type: text/html
 <head>
     <meta charset='utf-8'>
     <title>Tortordle: $TITLE</title>
+    <style type='text/css'>
+        body { color: white; background-color: black; }
+        button { color: white; background-color: black; font-family: monospace, monospace; }
+        a { color: white; }
+    </style>
+    <script>
+    function copyToClipboard(text) {
+        // This is terrible.
+        var dummy = document.createElement('input');
+        dummy.setAttribute('value', text);
+        document.body.appendChild(dummy);
+        dummy.select();
+        document.execCommand('copy');
+        document.body.removeChild(dummy);
+    }
+    function copyLink() {
+        copyToClipboard(document.location.href);
+    }
+    function copySpoilerFreeLink() {
+        const url = new URL('./no-spoiler?$ENCRYPTED', document.baseURI).href;
+        copyToClipboard(url);
+    }
+    </script>
 </head>
-<body style='color:white; background-color:black;'>
+<body>
     <pre>"
 
 ../target/release/tortordle --color --columns=12 --words "${ARGS[@]}" \
@@ -25,9 +48,9 @@ echo "Content-Type: text/html
 
 echo "
 
-                        <a href='./no-spoiler?$ENCRYPTED' style='color:white'>Spoiler-Free Link</a>
+                        <button onclick='copyLink()'>Copy Link</button> <button onclick='copySpoilerFreeLink()'>Copy Spoiler-Free Link</button>
 
-                        &lt;&lt; <a href='..' style='color:white'>Analyse Another Game</a>
+                        &lt;&lt; <a href='..'>Analyse Another Game</a>
     </pre>
 </body>
 </html>"
