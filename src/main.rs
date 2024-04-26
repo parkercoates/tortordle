@@ -277,9 +277,10 @@ pub struct CmdArgs {
         value_name = "STARTING_WORD",
         value_parser = parse_word_from_arg,
         help = "Attempt to solve every possible Wordle game from the given starting word.",
-        conflicts_with_all = ["words", "columns", "suggest-first-guess"]
+        conflicts_with_all = ["words", "columns", "suggest_first_guess"]
     )]
     pub solve_all: Option<Word>,
+
     #[arg(long, help = "Force colorised output on")]
     pub color: bool,
 
