@@ -95,7 +95,7 @@ fn print_remaining_words(
     columns: usize,
 ) {
     match possibilities.len() {
-        0 => println_indented_note("There are no words remaining! Something went wrong!"),
+        0 => println_indented_note("I am not aware of any remaining possibilities."),
         1 => println_label_value(
             "1 word remains",
             knowledge.format_word(possibilities[0].word),
@@ -331,11 +331,14 @@ fn main() -> ExitCode {
 
     let known_answer = POSSIBLE_ANSWERS.iter().any(|a| a.word == answer);
     if !known_answer {
-        println!();
         println_note(&format!(
-            "{answer} is not in the list of known potential answers."
+            "
+{answer} is not in my list of known potential answers.
+
+The Wordle answer list is no longer public and new words are occasionally added
+to it. If {answer} was the answer to a Wordle puzzle, please let Parker know
+and he will add it to my list."
         ));
-        println_note("That shouldn't happen. Analysis is unlikely to go well.");
     }
 
     let mut knowledge = WordKnowledge::new();
@@ -366,7 +369,7 @@ fn main() -> ExitCode {
                 println_indented_note(&format!("    {}", &conflict.as_text()));
             }
         } else if !POSSIBLE_ANSWERS.iter().any(|a| a.word == guess) {
-            println_indented_note("This guess is not one of the potential Wordle answers.");
+            println_indented_note("This guess is not in my list of the potential Wordle answers.");
         }
 
         knowledge.add_guess(&colored_guess);
