@@ -386,18 +386,20 @@ and he will add it to my list."
     }
 
     // Let the algorithm attempt solve it itself.
-    println!();
-    print_label("My Best Attempt");
-    if let Some(guesses) = attempt_optimal_solve(starting_guess, answer) {
-        println!(
-            "{}",
-            &guesses.iter().map(ColoredGuess::formatted).join(" -> "),
-        );
-        if MAX_GUESSES < guesses.len() {
-            println_indented_note("I failed.");
+    if known_answer {
+        println!();
+        print_label("My Best Attempt");
+        if let Some(guesses) = attempt_optimal_solve(starting_guess, answer) {
+            println!(
+                "{}",
+                &guesses.iter().map(ColoredGuess::formatted).join(" -> "),
+            );
+            if MAX_GUESSES < guesses.len() {
+                println_indented_note("I failed.");
+            }
+        } else {
+            println_note("Something went wrong while attempting to find an optimal solution.");
         }
-    } else {
-        println_note("Something went wrong while attempting to find an optimal solution.");
     }
 
     ExitCode::SUCCESS
