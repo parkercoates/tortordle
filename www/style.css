@@ -1,0 +1,37 @@
+body {
+    color: white;
+    background-color: black;
+    font-family: monospace, monospace;
+    white-space: pre;
+    max-width: max-content;
+    margin: auto;
+}
+
+h1, h2 {
+    font-size: inherit;
+    font-weight: normal;
+    line-height: inherit;
+    display: inline;
+}
+
+a {
+    color: inherit;
+}
+
+button, input {
+    color: inherit;
+    background-color: inherit;
+    font: inherit;
+    text-align: center;
+    border: 2px solid white;
+    padding: 1px
+}
+
+input[type="text"] {
+    width: 10ch;
+    text-transform: uppercase;
+}
+
+.larger {
+    font-size: larger;
+}

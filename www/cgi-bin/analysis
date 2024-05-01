@@ -16,11 +16,7 @@ echo "Content-Type: text/html
 <head>
     <meta charset='utf-8'>
     <title>Tortordle: $TITLE</title>
-    <style type='text/css'>
-        body { color: white; background-color: black; }
-        button { color: white; background-color: black; font-family: monospace, monospace; }
-        a { color: white; }
-    </style>
+    <link rel='stylesheet' href='../style.css'>
     <script>
     function copyToClipboard(text) {
         // This is terrible.
@@ -44,7 +40,7 @@ echo "Content-Type: text/html
     <pre>"
 
 ../target/release/tortordle --color --columns=12 --words "${ARGS[@]}" \
-| aha --black --title "$TITLE" --no-header
+| aha --no-header --black
 
 echo "
 
