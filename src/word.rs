@@ -43,7 +43,7 @@ impl Display for Letter {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Ord, PartialOrd, PartialEq, Eq)]
 pub struct Word {
     pub letters: [Letter; Self::LENGTH],
 }

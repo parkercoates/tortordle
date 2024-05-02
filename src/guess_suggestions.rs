@@ -210,27 +210,35 @@ fn keep_top_scores(scores: &mut Vec<ScoredGuess>, count: usize) {
     keep_top(scores, count, |a, b| a.score.cmp(&b.score));
 }
 
-fn keep_top_scores_favoring_user_guess(
-    guesses: &mut Vec<ScoredGuess>,
-    count: usize,
-    user_guess: Option<Word>,
-) {
+fn keep_top_scores_final(guesses: &mut Vec<ScoredGuess>, count: usize, user_guess: Option<Word>) {
+    // In the case of an N-way tie on score, the order of the guesses is thus far non-deterministic,
+    // but we'd prefer it be deterministic, so let's apply a super thorough sorting for the final
+    // sort. This is always the smallest sort we do, so performance is not critical.
+    //
     // If a user guess was provided, order it first in the event of a tie. Users like to see that
     // blue column as close to the left edge as possible, and in the event of a tie, I see no reason
     // not to indulge them.
-    if let Some(user_guess) = user_guess {
-        keep_top(guesses, count, |a, b| {
-            a.score.cmp(&b.score).then_with(|| {
-                if a.word == user_guess {
+    //
+    // Otherwise, order by green/yellow count, green count and then alphabetically. Putting
+    // green/yellow count before green count is entirely arbitrary, but matches the row order shown
+    // to users.
+    //
+    // Note that these extra layers of sorting are only for ordering purposes. Suggestion ranking is
+    // is still entirely based on score, so these do not reduce the number of ties.
+    keep_top(guesses, count, |a, b| {
+        a.score
+            .cmp(&b.score)
+            .then_with(|| {
+                if user_guess.is_some_and(|w| w == a.word) {
                     Ordering::Less
                 } else {
                     Ordering::Equal
                 }
             })
-        });
-    } else {
-        keep_top_scores(guesses, count);
-    }
+            .then_with(|| b.green_yellow_count.cmp(&a.green_yellow_count))
+            .then_with(|| b.green_count.cmp(&a.green_count))
+            .then_with(|| a.word.cmp(&b.word))
+    });
 }
 
 pub fn best_guesses(
@@ -274,8 +282,8 @@ pub fn best_guesses(
             .for_each(|guess| guess.compute_avg_score(&subset, guesses_so_far));
     }
 
-    // Keep just the top `count` guesses.
-    keep_top_scores_favoring_user_guess(&mut guesses, count, user_guess);
+    // Keep just the top `count` guesses and make ordering deterministic.
+    keep_top_scores_final(&mut guesses, count, user_guess);
 
     // Assign ranks to the guesses, detecting any ties.
     compute_ranks(&mut guesses);
