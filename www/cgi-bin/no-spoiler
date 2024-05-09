@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-DECRYPTED=$(echo "$QUERY_STRING" | openssl enc -d -des3 -base64 -pass pass:tortordle -pbkdf2)
+DECRYPTED=$(echo "$QUERY_STRING" | openssl enc -d -des3 -base64 -pass pass:tortordle -pbkdf2 | sed 's/\s+$//')
+
 
 echo "Content-Type: text/html
 

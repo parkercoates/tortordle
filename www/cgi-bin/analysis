@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 
+# Normalize query strings to uppercase
+QUERY_STRING=$(echo "$QUERY_STRING" | tr '[:lower:]' '[:upper:]')
+
+# Split query string on plus signs to get the words as an array
 IFS='+' read -ra ARGS <<< "$QUERY_STRING"
 
-TITLE=$(echo "${ARGS[@]}" | tr '[:lower:]' '[:upper:]')
+TITLE=$(echo "${ARGS[@]}")
 
 START=$(date +%s%N)
 
-ENCRYPTED=$(echo "$QUERY_STRING" | openssl enc -e -des3 -base64 -A -pass pass:tortordle -pbkdf2)
+# Pad the unencrypted data out with spaces so the length doesn't reveal any information
+UNENCRYPTED=$(printf "%-41s" "$QUERY_STRING")
+
+ENCRYPTED=$(echo "$UNENCRYPTED" | openssl enc -e -des3 -base64 -A -pass pass:tortordle -pbkdf2)
 
 echo "Content-Type: text/html
 
