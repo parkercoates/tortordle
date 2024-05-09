@@ -6,7 +6,7 @@ TITLE=$(echo "${ARGS[@]}" | tr '[:lower:]' '[:upper:]')
 
 START=$(date +%s%N)
 
-ENCRYPTED=$(echo "$QUERY_STRING" | openssl enc -e -des3 -base64 -pass pass:tortordle -pbkdf2)
+ENCRYPTED=$(echo "$QUERY_STRING" | openssl enc -e -des3 -base64 -A -pass pass:tortordle -pbkdf2)
 
 echo "Content-Type: text/html
 
