@@ -65,9 +65,8 @@ pub struct WordKnowledge {
 
 impl WordKnowledge {
     pub const fn new() -> Self {
-        const EMPTY_SLOT: LetterKnowledge = LetterKnowledge::new();
         Self {
-            slots: [EMPTY_SLOT; Word::LENGTH],
+            slots: [const { LetterKnowledge::new() }; Word::LENGTH],
             all_letters: Alphagram::new(),
             yellows: Alphagram::new(),
         }
