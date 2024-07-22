@@ -35,7 +35,7 @@ impl LetterKnowledge {
             Is(letter) => letter_with_fg(*letter, Color::Green),
             IsNot(set) => {
                 letters_with_fg(
-                    yellows.letters().dedup().filter(|&l| !set.contains(l)),
+                    yellows.into_iter().dedup().filter(|&l| !set.contains(l)),
                     Color::Yellow,
                 ) + &letters_with_fg(set.letters(), Color::Red)
             }
@@ -82,18 +82,18 @@ impl WordKnowledge {
         for (guess_letter, answer_letter, slot) in izip!(guess, answer, &mut result.slots) {
             if guess_letter == answer_letter {
                 slot.set_letter(guess_letter);
-                result.all_letters.add_letter(guess_letter);
+                result.all_letters.insert(guess_letter);
             } else {
                 slot.remove_letter(guess_letter);
-                potential_yellows.add_letter(answer_letter);
+                potential_yellows.insert(answer_letter);
             }
         }
 
         for (i, &letter) in guess.iter().enumerate() {
             if let IsNot(_) = result.slots[i] {
-                if potential_yellows.remove_letter(letter) {
-                    result.yellows.add_letter(letter);
-                    result.all_letters.add_letter(letter);
+                if potential_yellows.remove(letter) {
+                    result.yellows.insert(letter);
+                    result.all_letters.insert(letter);
                 } else if !result.yellows.contains(letter) {
                     result
                         .slots
@@ -113,12 +113,12 @@ impl WordKnowledge {
         for (i, (letter, color)) in guess.iter().enumerate() {
             match color {
                 GuessColor::Green => {
-                    new_letters.add_letter(*letter);
+                    new_letters.insert(*letter);
                     self.slots[i].set_letter(*letter);
                 }
                 GuessColor::Yellow => {
-                    new_letters.add_letter(*letter);
-                    new_yellows.add_letter(*letter);
+                    new_letters.insert(*letter);
+                    new_yellows.insert(*letter);
                     self.slots[i].remove_letter(*letter);
                 }
                 GuessColor::Black => {
@@ -151,7 +151,7 @@ impl WordKnowledge {
         self.yellows = self.all_letters;
         for slot in &self.slots {
             if let Is(letter) = slot {
-                self.yellows.remove_letter(*letter);
+                self.yellows.remove(*letter);
             }
         }
 
@@ -163,7 +163,7 @@ impl WordKnowledge {
         // letter and only two slots they could match. (Something I've never seen happen in a real
         // game.)
         const MAX_POTENTIAL_SLOTS: usize = Word::LENGTH - 1;
-        for (count, letter) in self.yellows.letters().dedup_with_count() {
+        for (count, letter) in self.yellows.into_iter().dedup_with_count() {
             let potential_slots = self
                 .slots
                 .iter_mut()
@@ -172,7 +172,7 @@ impl WordKnowledge {
             if potential_slots.len() == count {
                 for slot in potential_slots {
                     slot.set_letter(letter);
-                    self.yellows.remove_letter(letter);
+                    self.yellows.remove(letter);
                 }
             }
         }
@@ -194,7 +194,7 @@ impl WordKnowledge {
                 }
             }
         }
-        for (count_needed, letter) in self.yellows.letters().dedup_with_count() {
+        for (count_needed, letter) in self.yellows.into_iter().dedup_with_count() {
             let count_found = word.iter().filter(|&&l| l == letter).count();
             if count_found < count_needed {
                 conflicts.push(Conflict::Missing(letter, count_needed));

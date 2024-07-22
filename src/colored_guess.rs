@@ -62,11 +62,11 @@ pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
         if guess_letter == answer_letter {
             *state = Green;
         } else {
-            yellows.add_letter(answer_letter);
+            yellows.insert(answer_letter);
         }
     }
     for (letter, state) in &mut slots {
-        if *state == Black && yellows.remove_letter(*letter) {
+        if *state == Black && yellows.remove(*letter) {
             *state = Yellow;
         }
     }

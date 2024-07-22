@@ -26,7 +26,7 @@ impl Alphagram {
         }
     }
 
-    pub fn add_letter(&mut self, mut letter: Letter) {
+    pub fn insert(&mut self, mut letter: Letter) {
         for slot in &mut self.slots {
             if letter < *slot {
                 std::mem::swap(slot, &mut letter);
@@ -34,7 +34,7 @@ impl Alphagram {
         }
     }
 
-    pub fn remove_letter(&mut self, letter: Letter) -> bool {
+    pub fn remove(&mut self, letter: Letter) -> bool {
         for i in 0..Self::LENGTH {
             if self.slots[i] == letter {
                 for j in i..Self::LENGTH - 1 {
@@ -47,7 +47,7 @@ impl Alphagram {
         false
     }
 
-    pub fn letters(&self) -> impl Iterator<Item = Letter> {
+    pub fn into_iter(self) -> impl Iterator<Item = Letter> {
         self.slots.into_iter().take_while(Letter::is_valid)
     }
 
@@ -56,7 +56,7 @@ impl Alphagram {
     }
 
     pub fn contains_other(self, other: Self) -> bool {
-        let mut letters_to_find = other.letters();
+        let mut letters_to_find = other.into_iter();
         let Some(mut letter_to_find) = letters_to_find.next() else {
             // If there are no letters to find, we've already succeeded.
             return true;
