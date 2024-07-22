@@ -66,8 +66,8 @@ impl<'a, T> SliceSubset<'a, T> {
         }
     }
 
-    pub fn iter(&self) -> SliceSubsetIterator<T> {
-        SliceSubsetIterator {
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
             slice_subset: self,
             bits_to_visit: self.bit_mask,
         }
@@ -79,18 +79,18 @@ where
     'outer: 'inner,
 {
     type Item = &'inner T;
-    type IntoIter = SliceSubsetIterator<'inner, T>;
+    type IntoIter = Iter<'inner, T>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-pub struct SliceSubsetIterator<'a, T> {
+pub struct Iter<'a, T> {
     slice_subset: &'a SliceSubset<'a, T>,
     bits_to_visit: BitMask,
 }
 
-impl<'a, T> Iterator for SliceSubsetIterator<'a, T> {
+impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
         let index = self.bits_to_visit.trailing_zeros() as usize;
