@@ -50,11 +50,19 @@ impl<'a, T> SliceSubset<'a, T> {
             }
             bits_to_visit.bit_reset(index);
         }
-        let first_occupied = bit_mask.trailing_zeros() as usize;
-        let last_occupied = Self::MAX_CAPACITY - bit_mask.leading_zeros() as usize - 1;
-        Self {
-            slice: &slice[first_occupied..=last_occupied],
-            bit_mask: bit_mask >> first_occupied,
+
+        if bit_mask.bit_none() {
+            Self {
+                slice: &[],
+                bit_mask,
+            }
+        } else {
+            let first_occupied = bit_mask.trailing_zeros() as usize;
+            let last_occupied = Self::MAX_CAPACITY - bit_mask.leading_zeros() as usize - 1;
+            Self {
+                slice: &slice[first_occupied..=last_occupied],
+                bit_mask: bit_mask >> first_occupied,
+            }
         }
     }
 
@@ -152,5 +160,33 @@ mod tests {
         assert_eq!(it.next(), None);
 
         assert_eq!(non_zeroes.slice.len(), 6);
+    }
+
+    #[test]
+    fn test_retained_none() {
+        let ar = [0i32, 0, 0, 0, 2, 3, 0, 0, 4, 5, 0, 0, 0];
+        let subset = SliceSubset::from_slice(&ar).unwrap();
+        let double_digits = subset.retained(|i| *i >= 10);
+        assert_eq!(double_digits.len(), 0);
+        assert_eq!(double_digits.slice.len(), 0);
+        let mut it = double_digits.into_iter();
+        assert_eq!(it.next(), None);
+        assert_eq!(it.next(), None);
+    }
+
+    #[test]
+    fn test_large() {
+        let ar: Vec<_> = { 1..124 }.collect();
+        let subset = SliceSubset::from_slice(&ar).unwrap();
+
+        let multiples_of_7 = subset.retained(|i| *i % 7 == 0);
+        assert_eq!(multiples_of_7.len(), 17);
+        assert_eq!(multiples_of_7.slice.len(), 119 - 7 + 1);
+
+        let mut it = multiples_of_7.iter();
+        for i in { 7..=119 }.step_by(7) {
+            assert_eq!(it.next(), Some(&i));
+        }
+        assert_eq!(it.next(), None);
     }
 }
