@@ -228,12 +228,10 @@ fn keep_top_scores_final(guesses: &mut Vec<ScoredGuess>, count: usize, user_gues
     keep_top(guesses, count, |a, b| {
         a.score
             .cmp(&b.score)
-            .then_with(|| {
-                if user_guess.is_some_and(|w| w == a.word) {
-                    Ordering::Less
-                } else {
-                    Ordering::Equal
-                }
+            .then_with(|| match user_guess {
+                Some(guess) if guess == a.word => Ordering::Less,
+                Some(guess) if guess == b.word => Ordering::Greater,
+                _ => Ordering::Equal,
             })
             .then_with(|| b.green_yellow_count.cmp(&a.green_yellow_count))
             .then_with(|| b.green_count.cmp(&a.green_count))
