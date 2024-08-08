@@ -37,7 +37,7 @@ impl LetterKnowledge {
                 letters_with_fg(
                     yellows.into_iter().dedup().filter(|&l| !set.contains(l)),
                     Color::Yellow,
-                ) + &letters_with_fg(set.letters(), Color::Red)
+                ) + &letters_with_fg(set.into_iter(), Color::Red)
             }
         }
     }
@@ -49,7 +49,7 @@ impl LetterKnowledge {
         }
     }
 
-    const fn could_still_be(&self, letter: Letter) -> bool {
+    fn could_still_be(&self, letter: Letter) -> bool {
         match self {
             Is(_) => false,
             IsNot(set) => !set.contains(letter),

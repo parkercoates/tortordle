@@ -16,6 +16,10 @@ pub struct Letter(u8);
 impl Letter {
     pub const NO_LETTER: Self = Self(u8::MAX);
 
+    pub const fn from_index(b: u8) -> Self {
+        Self(b)
+    }
+
     pub const fn from_ascii(b: u8) -> Self {
         match b {
             b'A'..=b'Z' => Self(b - b'A'),

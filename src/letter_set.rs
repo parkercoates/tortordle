@@ -1,4 +1,5 @@
 use crate::word::Letter;
+use bitset_core::BitSet;
 
 #[derive(Clone, Copy)]
 pub struct LetterSet {
@@ -11,16 +12,35 @@ impl LetterSet {
     }
 
     pub fn insert(&mut self, letter: Letter) {
-        self.bits |= 1 << letter.index();
+        self.bits.bit_set(letter.index() as usize);
     }
 
-    pub const fn contains(self, letter: Letter) -> bool {
-        self.bits & (1 << letter.index()) != 0
+    pub fn contains(self, letter: Letter) -> bool {
+        self.bits.bit_test(letter.index() as usize)
     }
+}
 
-    pub fn letters(self) -> impl Iterator<Item = Letter> {
-        (b'A'..=b'Z')
-            .map(Letter::from_ascii)
-            .filter(move |&l| self.contains(l))
+impl IntoIterator for LetterSet {
+    type Item = Letter;
+    type IntoIter = Iter;
+    fn into_iter(self) -> Self::IntoIter {
+        Iter { bits: self.bits }
+    }
+}
+
+pub struct Iter {
+    bits: u32,
+}
+
+impl Iterator for Iter {
+    type Item = Letter;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.bits.bit_any() {
+            let index = self.bits.trailing_zeros();
+            self.bits.bit_reset(index as usize);
+            Some(Letter::from_index(index as u8))
+        } else {
+            None
+        }
     }
 }
