@@ -363,14 +363,16 @@ and he will add it to my list."
             break;
         }
 
+        if !POSSIBLE_ANSWERS.iter().any(|a| a.word == guess) {
+            println_indented_note("This guess is not in my list of the potential Wordle answers.");
+        }
+
         let conflicts = knowledge.check_for_conflicts(guess);
         if !conflicts.is_empty() {
             println_indented_note("This guess conflicts with previously collected information:");
             for conflict in conflicts {
                 println_indented_note(&format!("    {}", &conflict.as_text()));
             }
-        } else if !POSSIBLE_ANSWERS.iter().any(|a| a.word == guess) {
-            println_indented_note("This guess is not in my list of the potential Wordle answers.");
         }
 
         knowledge.add_guess(&colored_guess);
