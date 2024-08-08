@@ -1,12 +1,14 @@
-use crate::word::{Letter, Word};
+use crate::word::{fmt_letters, Letter, Word};
+
 use std::cmp::Ordering;
+use std::fmt::Debug;
 
 // An alphagram is the set of letters, listed in alphabetical order. The term is
 // taken from competitive Scrabble, where it is the most common way of racking
 // one's tiles. Apparently alphagrams are also used in memorising the Scrabble
 // word list.
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Alphagram {
     slots: [Letter; Self::LENGTH],
 }
@@ -131,6 +133,12 @@ impl Alphagram {
             }
         }
         self.slots = new;
+    }
+}
+
+impl Debug for Alphagram {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt_letters(self.slots, f)
     }
 }
 

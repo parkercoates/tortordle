@@ -8,6 +8,7 @@ use arrayvec::ArrayVec;
 use colored::Color;
 use itertools::{izip, Itertools};
 
+#[derive(Eq, PartialEq, Debug)]
 enum LetterKnowledge {
     Is(Letter),
     IsNot(LetterSet),
@@ -258,7 +259,7 @@ impl Conflict {
                         add_indefinite_article_to_letter(letter)
                     )
                 } else {
-                    format!("The word must contain {needed} {}'s.", letter.char())
+                    format!("The word must contain {needed} {letter}'s.")
                 }
             }
         }

@@ -1,7 +1,8 @@
-use crate::word::Letter;
+use crate::word::{fmt_letters, Letter};
+
 use bitset_core::BitSet;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct LetterSet {
     bits: u32,
 }
@@ -42,5 +43,11 @@ impl Iterator for Iter {
         } else {
             None
         }
+    }
+}
+
+impl std::fmt::Debug for LetterSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt_letters(self.into_iter(), f)
     }
 }

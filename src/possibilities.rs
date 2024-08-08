@@ -1,5 +1,7 @@
 use crate::alphagram::Alphagram;
-use crate::word::Word;
+use crate::word::{fmt_letters, Word};
+
+use std::fmt::Debug;
 
 #[derive(Clone)]
 pub struct PossibleAnswer {
@@ -13,6 +15,12 @@ impl PossibleAnswer {
             word,
             alphagram: Alphagram::from_word(word),
         }
+    }
+}
+
+impl Debug for PossibleAnswer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt_letters(self.word.letters, f)
     }
 }
 

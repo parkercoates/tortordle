@@ -1,10 +1,10 @@
 use colored::{Color, Colorize};
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Debug, Display, Write};
 
 // Letter is a simple wrapper around a byte representing a letter by its zero indexed position in
 // the alphabet.
 //
-// Storing them as zero-indexed rather than ASCII introduces a small about of overhead when
+// Storing them as zero-indexed rather than ASCII introduces a small amount of overhead when
 // converting to and from strings, but gains us a bit of performance when storing them and looking
 // them up in a LetterSet. As the former is done only on startup and output and the latter is done
 // literally millions of times, this is a worthwhile trade-off, especially considering that the
@@ -42,9 +42,25 @@ impl Letter {
 }
 
 impl Display for Letter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_char(self.char())
     }
+}
+
+impl Debug for Letter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_char(self.char())
+    }
+}
+
+pub fn fmt_letters<I>(letters: I, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+where
+    I: IntoIterator<Item = Letter>,
+{
+    for letter in letters {
+        f.write_char(letter.char())?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Ord, PartialOrd, PartialEq, Eq)]
@@ -101,11 +117,14 @@ impl<'a> IntoIterator for &'a Word {
 }
 
 impl Display for Word {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for letter in self.letters {
-            f.write_char(letter.char())?;
-        }
-        Ok(())
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt_letters(self.letters, f)
+    }
+}
+
+impl Debug for Word {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt_letters(self.letters, f)
     }
 }
 
