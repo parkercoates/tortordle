@@ -33,7 +33,11 @@ impl Letter {
     }
 
     pub const fn char(&self) -> char {
-        (self.0 + b'A') as char
+        if self.is_valid() {
+            (self.0 + b'A') as char
+        } else {
+            '_'
+        }
     }
 
     pub const fn is_valid(&self) -> bool {
