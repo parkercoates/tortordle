@@ -28,7 +28,12 @@ impl Alphagram {
         }
     }
 
+    pub fn is_full(self) -> bool {
+        self.slots[Self::LENGTH - 1] != Letter::NO_LETTER
+    }
+
     pub fn insert(&mut self, mut letter: Letter) {
+        debug_assert!(!self.is_full());
         for slot in &mut self.slots {
             if letter < *slot {
                 std::mem::swap(slot, &mut letter);
