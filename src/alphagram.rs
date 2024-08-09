@@ -54,10 +54,6 @@ impl Alphagram {
         false
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = Letter> {
-        self.slots.into_iter().take_while(Letter::is_valid)
-    }
-
     pub fn contains(self, letter: Letter) -> bool {
         self.slots.contains(&letter)
     }
@@ -129,6 +125,35 @@ impl Alphagram {
 impl Debug for Alphagram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fmt_letters(self.slots, f)
+    }
+}
+
+impl IntoIterator for Alphagram {
+    type Item = Letter;
+    type IntoIter = Iter;
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            slots: self.slots,
+            index: 0,
+        }
+    }
+}
+
+pub struct Iter {
+    slots: [Letter; Alphagram::LENGTH],
+    index: usize,
+}
+
+impl Iterator for Iter {
+    type Item = Letter;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.slots.len() {
+            let letter = self.slots[self.index];
+            self.index += 1;
+            letter.is_valid().then_some(letter)
+        } else {
+            None
+        }
     }
 }
 
