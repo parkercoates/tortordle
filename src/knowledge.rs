@@ -141,7 +141,7 @@ impl WordKnowledge {
         //
         // Note that we can't just use `new_letters` because of non-hard mode players. `new_letters`
         // may be missing letters from previous guesses.
-        self.all_letters.merge_via_max(new_letters);
+        self.all_letters = self.all_letters.merged(new_letters);
 
         // Third, we compute the set of yellows by removing the greens from the all-letter
         // alphagram.

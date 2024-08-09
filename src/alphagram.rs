@@ -91,48 +91,33 @@ impl Alphagram {
         false
     }
 
-    pub fn merge_via_max(&mut self, other: Self) {
-        let mut new = [Letter::NO_LETTER; Self::LENGTH];
+    // Merges the two Alphagrams, keeping the higher count for every letter encountered. Since
+    // Alphagram has a fixed capacity, the result is undefined if the merged capacity exceeds it.
+    pub fn merged(self, other: Self) -> Self {
         let mut i = 0;
         let mut j = 0;
-        let mut k = 0;
-        while k < Self::LENGTH {
+        let mut slots = [Letter::NO_LETTER; Self::LENGTH];
+        for slot in &mut slots {
             match self.slots[i].cmp(&other.slots[j]) {
-                std::cmp::Ordering::Equal => {
-                    new[k] = self.slots[i];
+                Ordering::Equal => {
+                    *slot = self.slots[i];
                     i += 1;
                     j += 1;
-                    k += 1;
                 }
-                std::cmp::Ordering::Greater => {
-                    new[k] = other.slots[j];
+                Ordering::Greater => {
+                    *slot = other.slots[j];
                     j += 1;
-                    k += 1;
                 }
-                std::cmp::Ordering::Less => {
-                    new[k] = self.slots[i];
+                Ordering::Less => {
+                    *slot = self.slots[i];
                     i += 1;
-                    k += 1;
                 }
-            }
-
-            if i == Self::LENGTH {
-                while j < Self::LENGTH && k < Self::LENGTH {
-                    new[k] = other.slots[j];
-                    j += 1;
-                    k += 1;
-                }
-                break;
-            } else if j == Self::LENGTH {
-                while i < Self::LENGTH && k < Self::LENGTH {
-                    new[k] = self.slots[i];
-                    i += 1;
-                    k += 1;
-                }
-                break;
             }
         }
-        self.slots = new;
+        // Check that no letters went unused.
+        debug_assert!(i == Self::LENGTH || self.slots[i] == Letter::NO_LETTER);
+        debug_assert!(j == Self::LENGTH || other.slots[j] == Letter::NO_LETTER);
+        Self { slots }
     }
 }
 
