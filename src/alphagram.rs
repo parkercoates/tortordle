@@ -28,6 +28,10 @@ impl Alphagram {
         }
     }
 
+    pub fn is_empty(self) -> bool {
+        self.slots[0] == Letter::NO_LETTER
+    }
+
     pub fn is_full(self) -> bool {
         self.slots[Self::LENGTH - 1] != Letter::NO_LETTER
     }
@@ -180,4 +184,128 @@ const fn sorted5(mut arr: [Letter; 5]) -> [Letter; 5] {
     compare_exchange!(arr, 3, 4);
     compare_exchange!(arr, 2, 3);
     arr
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::*;
+
+    use itertools::assert_equal;
+
+    #[test]
+    fn test_new() {
+        let n = Alphagram::new();
+        assert_equal(n, ls(""));
+    }
+
+    #[test]
+    fn test_from_word() {
+        let alpha = Alphagram::from_word(w("APPLE"));
+        assert_equal(alpha, ls("AELPP"));
+    }
+
+    #[test]
+    fn test_is_empty() {
+        let n = Alphagram::new();
+        assert!(n.is_empty());
+    }
+
+    #[test]
+    fn test_is_full() {
+        let n = a("OUNCE");
+        assert!(n.is_full());
+    }
+
+    #[test]
+    fn test_insert() {
+        let mut n = Alphagram::new();
+        assert_equal(n, ls(""));
+        n.insert(l('M'));
+        assert_equal(n, ls("M"));
+        n.insert(l('A'));
+        assert_equal(n, ls("AM"));
+        n.insert(l('M'));
+        assert_equal(n, ls("AMM"));
+        n.insert(l('M'));
+        assert_equal(n, ls("AMMM"));
+        n.insert(l('A'));
+        assert_equal(n, ls("AAMMM"));
+    }
+
+    #[test]
+    fn test_remove() {
+        let mut n = a("LOLLY");
+        assert!(!n.remove(l('A')));
+        assert_equal(n, ls("LLLOY"));
+        assert!(n.remove(l('Y')));
+        assert_equal(n, ls("LLLO"));
+        assert!(!n.remove(l('Y')));
+        assert_equal(n, ls("LLLO"));
+        assert!(n.remove(l('L')));
+        assert_equal(n, ls("LLO"));
+        assert!(n.remove(l('L')));
+        assert_equal(n, ls("LO"));
+        assert!(n.remove(l('O')));
+        assert_equal(n, ls("L"));
+        assert!(n.remove(l('L')));
+        assert_equal(n, ls(""));
+        assert!(!n.remove(l('L')));
+        assert_equal(n, ls(""));
+    }
+
+    #[test]
+    fn test_contains() {
+        assert!(!a("").contains(l('A')));
+        assert!(!a("B").contains(l('A')));
+        assert!(!a("BCDEF").contains(l('A')));
+
+        assert!(a("A").contains(l('A')));
+        assert!(a("ABCDE").contains(l('A')));
+        assert!(a("ABCDE").contains(l('E')));
+        assert!(a("AABBC").contains(l('B')));
+    }
+
+    #[test]
+    fn test_contains_other() {
+        assert!(a("").contains_other(a("")));
+        assert!(a("A").contains_other(a("")));
+        assert!(a("ABCDE").contains_other(a("")));
+
+        assert!(a("ABCDE").contains_other(a("A")));
+        assert!(a("ABCDE").contains_other(a("AE")));
+        assert!(a("ABCDE").contains_other(a("ABCDE")));
+        assert!(a("AABBC").contains_other(a("AABB")));
+
+        assert!(!a("").contains_other(a("A")));
+        assert!(!a("A").contains_other(a("AA")));
+        assert!(!a("AAB").contains_other(a("ABB")));
+        assert!(!a("ABCDE").contains_other(a("BCDEF")));
+    }
+
+    #[test]
+    fn test_merged() {
+        assert_eq!(a("").merged(a("")), a(""));
+        assert_eq!(a("ABCDE").merged(a("")), a("ABCDE"));
+        assert_eq!(a("").merged(a("ABCDE")), a("ABCDE"));
+
+        assert_eq!(a("AAB").merged(a("ABBZ")), a("AABBZ"));
+    }
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(dbg(a("")), "_____");
+        assert_eq!(dbg(a("ACE")), "ACE__");
+        assert_eq!(dbg(a("ACERR")), "ACERR");
+    }
+
+    #[test]
+    fn test_sorted5() {
+        let t = |s, expected| assert_eq!(sorted5(ar(s)), ar(expected));
+        t("ABCDE", "ABCDE");
+        t("EDCBA", "ABCDE");
+        t("AAAAA", "AAAAA");
+        t("ZAZAZ", "AAZZZ");
+        t("MABEL", "ABELM");
+    }
 }

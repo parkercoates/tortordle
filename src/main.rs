@@ -7,6 +7,9 @@ mod possibilities;
 mod slice_subset;
 mod word;
 
+#[cfg(test)]
+mod test_helpers;
+
 use colored_guess::{color_guess, ColoredGuess};
 use guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
 use itertools::Itertools;
