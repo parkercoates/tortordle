@@ -20,10 +20,10 @@ impl Letter {
         Self(b)
     }
 
-    pub const fn from_ascii(b: u8) -> Self {
-        match b {
-            b'A'..=b'Z' => Self(b - b'A'),
-            b'a'..=b'z' => Self(b - b'a'),
+    pub const fn from_char(c: char) -> Self {
+        match c {
+            'A'..='Z' => Self(c as u8 - b'A'),
+            'a'..='z' => Self(c as u8 - b'a'),
             _ => Self::NO_LETTER,
         }
     }
@@ -74,18 +74,16 @@ pub struct Word {
 
 impl Word {
     pub const LENGTH: usize = 5;
-    pub const fn from_str(s: &str) -> Option<Word> {
-        Self::from_ascii(s.as_bytes())
-    }
 
-    pub const fn from_ascii(bytes: &[u8]) -> Option<Word> {
+    pub const fn from_str(s: &str) -> Option<Word> {
+        let bytes = s.as_bytes();
         if bytes.len() != Self::LENGTH {
             return None;
         }
         let mut letters = [Letter::NO_LETTER; Self::LENGTH];
         let mut i = 0;
         while i < Self::LENGTH {
-            letters[i] = Letter::from_ascii(bytes[i]);
+            letters[i] = Letter::from_char(bytes[i] as char);
             if !letters[i].is_valid() {
                 return None;
             }
