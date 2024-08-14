@@ -101,3 +101,76 @@ pub fn letter_with_bg(letter: Letter, color: Color) -> String {
         .color(Color::Black)
         .to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::*;
+
+    #[test]
+    fn test_from_index() {
+        assert_eq!(Letter::from_index(0), l('A'));
+        assert_eq!(Letter::from_index(15), l('P'));
+        assert_eq!(Letter::from_index(25), l('Z'));
+        assert!(!Letter::from_index(26).is_valid());
+        assert!(!Letter::from_index(u8::MAX).is_valid());
+    }
+
+    #[test]
+    fn test_from_char() {
+        assert_eq!(Letter::from_char('a'), Letter::from_index(0));
+        assert_eq!(Letter::from_char('A'), Letter::from_index(0));
+        assert_eq!(Letter::from_char('P'), Letter::from_index(15));
+        assert_eq!(Letter::from_char('p'), Letter::from_index(15));
+        assert_eq!(Letter::from_char('Z'), Letter::from_index(25));
+        assert_eq!(Letter::from_char('z'), Letter::from_index(25));
+        assert_eq!(Letter::from_char('0'), Letter::NO_LETTER);
+        assert_eq!(Letter::from_char(' '), Letter::NO_LETTER);
+        assert_eq!(Letter::from_char('_'), Letter::NO_LETTER);
+        assert_eq!(Letter::from_char('🙂'), Letter::NO_LETTER);
+    }
+
+    #[test]
+    fn test_index() {
+        for i in u8::MIN..=u8::MAX {
+            assert_eq!(i, Letter::from_index(i).index())
+        }
+    }
+
+    #[test]
+    fn test_char() {
+        assert_eq!(Letter::from_index(0).char(), 'A');
+        assert_eq!(Letter::from_index(15).char(), 'P');
+        assert_eq!(Letter::from_index(25).char(), 'Z');
+        assert_eq!(Letter::from_index(26).char(), '_');
+        assert_eq!(Letter::from_index(u8::MAX).char(), '_');
+    }
+
+    #[test]
+    fn test_is_valid() {
+        assert!(Letter::from_index(0).is_valid());
+        assert!(Letter::from_char('p').is_valid());
+        assert!(Letter::from_char('Z').is_valid());
+        assert!(!Letter::from_index(27).is_valid());
+        assert!(!Letter::from_char('7').is_valid());
+        assert!(!Letter::NO_LETTER.is_valid());
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(Letter::from_index(0).to_string(), "A");
+        assert_eq!(Letter::from_char('p').to_string(), "P");
+        assert_eq!(Letter::from_char('Z').to_string(), "Z");
+        assert_eq!(Letter::from_index(67).to_string(), "_");
+        assert_eq!(Letter::NO_LETTER.to_string(), "_");
+    }
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(dbg(Letter::from_index(0)), "A");
+        assert_eq!(dbg(Letter::from_char('p')), "P");
+        assert_eq!(dbg(Letter::from_char('Z')), "Z");
+        assert_eq!(dbg(Letter::from_index(67)), "_");
+        assert_eq!(dbg(Letter::NO_LETTER), "_");
+    }
+}
