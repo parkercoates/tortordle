@@ -1,4 +1,5 @@
-use crate::word::{fmt_letters, Letter, Word};
+use crate::letter::{fmt_letters, Letter};
+use crate::word::Word;
 
 use std::cmp::Ordering;
 use std::fmt::Debug;
@@ -7,7 +8,6 @@ use std::fmt::Debug;
 // taken from competitive Scrabble, where it is the most common way of racking
 // one's tiles. Apparently alphagrams are also used in memorising the Scrabble
 // word list.
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Alphagram {
     slots: [Letter; Self::LENGTH],

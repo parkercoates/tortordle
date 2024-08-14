@@ -1,10 +1,11 @@
 use crate::alphagram::Alphagram;
 use crate::colored_guess::{ColoredGuess, GuessColor};
+use crate::letter::{letter_with_fg, letters_with_fg, Letter};
 use crate::letter_set::LetterSet;
 use crate::possibilities::PossibleAnswer;
-use crate::word::*;
-use arrayvec::ArrayVec;
+use crate::word::Word;
 
+use arrayvec::ArrayVec;
 use colored::Color;
 use itertools::{izip, Itertools};
 

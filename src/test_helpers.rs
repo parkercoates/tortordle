@@ -1,5 +1,6 @@
 use crate::alphagram::Alphagram;
-use crate::word::{Letter, Word};
+use crate::letter::Letter;
+use crate::word::Word;
 
 pub const fn l(c: char) -> Letter {
     let l = Letter::from_char(c);

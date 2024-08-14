@@ -1,5 +1,6 @@
 use crate::alphagram::Alphagram;
-use crate::word::{letter_with_bg, Letter, Word};
+use crate::letter::{letter_with_bg, Letter};
+use crate::word::Word;
 
 use colored::Color;
 

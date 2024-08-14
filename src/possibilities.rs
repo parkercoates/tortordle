@@ -1,5 +1,6 @@
 use crate::alphagram::Alphagram;
-use crate::word::{fmt_letters, Word};
+use crate::letter::fmt_letters;
+use crate::word::Word;
 
 use std::fmt::Debug;
 

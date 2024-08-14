@@ -1,4 +1,4 @@
-use crate::word::{fmt_letters, Letter};
+use crate::letter::{fmt_letters, Letter};
 
 use bitset_core::BitSet;
 
