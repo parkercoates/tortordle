@@ -1,5 +1,7 @@
 use crate::alphagram::Alphagram;
+use crate::colored_guess::{color_guess, ColoredGuess};
 use crate::letter::Letter;
+use crate::possibilities::PossibleAnswer;
 use crate::word::Word;
 
 pub const fn l(c: char) -> Letter {
@@ -41,6 +43,14 @@ pub fn a(s: &str) -> Alphagram {
         result.insert(l(c));
     }
     result
+}
+
+pub fn g(word: &str, answer: &str) -> ColoredGuess {
+    color_guess(w(word), w(answer))
+}
+
+pub const fn p(s: &str) -> PossibleAnswer {
+    PossibleAnswer::from_word(w(s))
 }
 
 pub fn dbg<T>(v: T) -> String

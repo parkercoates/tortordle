@@ -289,19 +289,7 @@ fn add_indefinite_article_to_letter(letter: Letter) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::color_guess;
-
-    fn w(s: &str) -> Word {
-        Word::expect_from_str(s)
-    }
-
-    fn g(word: &str, answer: &str) -> ColoredGuess {
-        color_guess(w(word), w(answer))
-    }
-
-    fn p(s: &str) -> PossibleAnswer {
-        PossibleAnswer::from_word(w(s))
-    }
+    use crate::test_helpers::{g, p};
 
     #[test] // GH-1
     fn same_letter_green_and_yellow() {
