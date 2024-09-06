@@ -1,6 +1,7 @@
 use crate::letter::{fmt_letters, Letter};
 use crate::word::Word;
 
+use itertools::Itertools;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
@@ -123,6 +124,14 @@ impl Alphagram {
         debug_assert!(i == Self::LENGTH || self.slots[i] == Letter::NO_LETTER);
         debug_assert!(j == Self::LENGTH || other.slots[j] == Letter::NO_LETTER);
         Self { slots }
+    }
+
+    pub fn unique_letters(self) -> impl Iterator<Item = Letter> {
+        self.into_iter().dedup()
+    }
+
+    pub fn counts(self) -> impl Iterator<Item = (usize, Letter)> {
+        self.into_iter().dedup_with_count()
     }
 }
 
@@ -290,6 +299,27 @@ mod tests {
         assert_eq!(a("").merged(a("ABCDE")), a("ABCDE"));
 
         assert_eq!(a("AAB").merged(a("ABBZ")), a("AABBZ"));
+    }
+
+    #[test]
+    fn test_unique_letters() {
+        let t = |s, expected| assert_equal(a(s).unique_letters(), ls(expected));
+        t("", "");
+        t("R", "R");
+        t("RE", "ER");
+        t("REFER", "EFR");
+        t("ZZZZZ", "Z");
+    }
+
+    #[test]
+    fn test_counts() {
+        let t =
+            |s, expected: &[(usize, Letter)]| assert_equal(a(s).counts(), expected.iter().copied());
+        t("", &[]);
+        t("R", &[(1, l('R'))]);
+        t("RE", &[(1, l('E')), (1, l('R'))]);
+        t("REFER", &[(2, l('E')), (1, l('F')), (2, l('R'))]);
+        t("ZZZZZ", &[(5, l('Z'))]);
     }
 
     #[test]

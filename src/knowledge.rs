@@ -37,7 +37,7 @@ impl LetterKnowledge {
             Is(letter) => letter_with_fg(*letter, Color::Green),
             IsNot(set) => {
                 letters_with_fg(
-                    yellows.into_iter().dedup().filter(|&l| !set.contains(l)),
+                    yellows.unique_letters().filter(|&l| !set.contains(l)),
                     Color::Yellow,
                 ) + &letters_with_fg(set.into_iter(), Color::Red)
             }
@@ -165,7 +165,7 @@ impl WordKnowledge {
         // letter and only two slots they could match. (Something I've never seen happen in a real
         // game.)
         const MAX_POTENTIAL_SLOTS: usize = Word::LENGTH - 1;
-        for (count, letter) in self.yellows.into_iter().dedup_with_count() {
+        for (count, letter) in self.yellows.counts() {
             let potential_slots = self
                 .slots
                 .iter_mut()
@@ -196,7 +196,7 @@ impl WordKnowledge {
                 }
             }
         }
-        for (count_needed, letter) in self.yellows.into_iter().dedup_with_count() {
+        for (count_needed, letter) in self.yellows.counts() {
             let count_found = word.iter().filter(|&&l| l == letter).count();
             if count_found < count_needed {
                 conflicts.push(Conflict::Missing(letter, count_needed));
