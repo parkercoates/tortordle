@@ -25,7 +25,10 @@ impl Debug for PossibleAnswer {
     }
 }
 
-#[allow(clippy::forget_non_drop)]
+#[expect(
+    clippy::forget_non_drop,
+    reason = "This warning is internal to konst and presumably safe for us to ignore."
+)]
 pub const POSSIBLE_ANSWERS: &[PossibleAnswer] = &konst::iter::collect_const!(PossibleAnswer =>
     konst::string::split(konst::string::trim(include_str!("WORDLE-ANSWERS.txt")), '\n'),
     map(|line| PossibleAnswer::from_word(Word::expect_from_str(line))),
