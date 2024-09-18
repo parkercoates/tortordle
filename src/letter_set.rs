@@ -51,3 +51,62 @@ impl std::fmt::Debug for LetterSet {
         fmt_letters(self.into_iter(), f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::*;
+
+    use itertools::assert_equal;
+
+    #[test]
+    fn test_new() {
+        assert_equal(LetterSet::new(), ls(""));
+    }
+
+    #[test]
+    fn test_insert() {
+        let mut set = LetterSet::new();
+        assert_equal(set, ls(""));
+        set.insert(l('M'));
+        assert_equal(set, ls("M"));
+        set.insert(l('A'));
+        assert_equal(set, ls("AM"));
+        set.insert(l('M'));
+        assert_equal(set, ls("AM"));
+        set.insert(l('M'));
+        assert_equal(set, ls("AM"));
+        set.insert(l('A'));
+        assert_equal(set, ls("AM"));
+    }
+
+    #[test]
+    fn test_contains() {
+        let mut set = LetterSet::new();
+        assert!(!set.contains(l('X')));
+        assert!(!set.contains(l('Y')));
+        assert!(!set.contains(l('Z')));
+
+        set.insert(l('X'));
+        assert!(set.contains(l('X')));
+        assert!(!set.contains(l('Y')));
+        assert!(!set.contains(l('Z')));
+
+        set.insert(l('X'));
+        assert!(set.contains(l('X')));
+        assert!(!set.contains(l('Y')));
+        assert!(!set.contains(l('Z')));
+
+        set.insert(l('Z'));
+        assert!(set.contains(l('X')));
+        assert!(!set.contains(l('Y')));
+        assert!(set.contains(l('Z')));
+    }
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(dbg(lset("")), "");
+        assert_eq!(dbg(lset("ACE")), "ACE");
+        assert_eq!(dbg(lset("ACER")), "ACER");
+    }
+}

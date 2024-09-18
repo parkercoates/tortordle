@@ -1,8 +1,20 @@
 use crate::alphagram::Alphagram;
 use crate::colored_guess::{color_guess, ColoredGuess};
 use crate::letter::Letter;
+use crate::letter_set::LetterSet;
 use crate::possibilities::PossibleAnswer;
 use crate::word::Word;
+
+fn is_sorted_and_unique(s: &str) -> bool {
+    let mut previous = '\0';
+    for c in s.chars() {
+        if c <= previous {
+            return false;
+        }
+        previous = c;
+    }
+    true
+}
 
 pub const fn l(c: char) -> Letter {
     assert!('A' <= c && c <= 'Z');
@@ -34,6 +46,15 @@ pub fn ar(s: &str) -> [Letter; Word::LENGTH] {
         ar[i] = l(b as char);
     }
     ar
+}
+
+pub fn lset(s: &str) -> LetterSet {
+    assert!(is_sorted_and_unique(s));
+    let mut result = LetterSet::new();
+    for c in s.chars() {
+        result.insert(l(c));
+    }
+    result
 }
 
 pub fn a(s: &str) -> Alphagram {
