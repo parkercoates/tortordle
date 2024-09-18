@@ -5,9 +5,8 @@ use crate::possibilities::PossibleAnswer;
 use crate::word::Word;
 
 pub const fn l(c: char) -> Letter {
-    let l = Letter::from_char(c);
-    assert!(l.is_valid());
-    l
+    assert!('A' <= c && c <= 'Z');
+    Letter::from_char(c)
 }
 
 pub fn ls(s: &str) -> StrLetters {

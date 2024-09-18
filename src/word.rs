@@ -33,7 +33,7 @@ impl Word {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Letter> {
-        self.letters.iter()
+        self.into_iter()
     }
 }
 
@@ -62,5 +62,63 @@ impl Display for Word {
 impl Debug for Word {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fmt_letters(self.letters, f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::*;
+
+    use itertools::assert_equal;
+
+    #[test]
+    fn test_from_str() {
+        assert!(Word::from_str("").is_none());
+        assert!(Word::from_str("a").is_none());
+        assert!(Word::from_str("abcd").is_none());
+        assert!(Word::from_str("abcdef").is_none());
+        assert!(Word::from_str("ab cd").is_none());
+        assert!(Word::from_str("ab.cd").is_none());
+        assert!(Word::from_str("àbcdé").is_none());
+
+        assert_eq!(
+            Word::from_str("ABCDE"),
+            Some(Word {
+                letters: [l('A'), l('B'), l('C'), l('D'), l('E')]
+            })
+        );
+        assert_eq!(
+            Word::from_str("abcde"),
+            Some(Word {
+                letters: [l('A'), l('B'), l('C'), l('D'), l('E')]
+            })
+        );
+    }
+
+    #[test]
+    fn test_expect_from_str() {
+        assert!(std::panic::catch_unwind(|| Word::expect_from_str("abcd")).is_err());
+        assert_eq!(Word::expect_from_str("ABCDE"), w("ABCDE"));
+    }
+
+    #[test]
+    fn test_iter() {
+        assert_equal(w("ZYXWV").iter().copied(), ls("ZYXWV"));
+    }
+
+    #[test]
+    fn test_into_iter() {
+        assert_equal(w("ZYXWV").into_iter(), ls("ZYXWV"));
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(w("LMNOP").to_string(), "LMNOP");
+    }
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(dbg(w("LMNOP")), "LMNOP");
     }
 }
