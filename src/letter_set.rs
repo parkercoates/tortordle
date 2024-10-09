@@ -19,9 +19,27 @@ impl LetterSet {
     pub fn contains(self, letter: Letter) -> bool {
         self.bits.bit_test(letter.index() as usize)
     }
+
+    pub fn iter(&self) -> Iter {
+        self.into_iter()
+    }
+}
+
+impl Default for LetterSet {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl IntoIterator for LetterSet {
+    type Item = Letter;
+    type IntoIter = Iter;
+    fn into_iter(self) -> Self::IntoIter {
+        Iter { bits: self.bits }
+    }
+}
+
+impl IntoIterator for &LetterSet {
     type Item = Letter;
     type IntoIter = Iter;
     fn into_iter(self) -> Self::IntoIter {
@@ -48,7 +66,7 @@ impl Iterator for Iter {
 
 impl std::fmt::Debug for LetterSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt_letters(self.into_iter(), f)
+        fmt_letters(self, f)
     }
 }
 
@@ -101,6 +119,11 @@ mod tests {
         assert!(set.contains(l('X')));
         assert!(!set.contains(l('Y')));
         assert!(set.contains(l('Z')));
+    }
+
+    #[test]
+    fn test_default() {
+        assert_equal(LetterSet::default(), ls(""));
     }
 
     #[test]

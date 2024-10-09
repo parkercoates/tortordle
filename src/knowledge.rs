@@ -39,7 +39,7 @@ impl LetterKnowledge {
                 letters_with_fg(
                     yellows.unique_letters().filter(|&l| !set.contains(l)),
                     Color::Yellow,
-                ) + &letters_with_fg(set.into_iter(), Color::Red)
+                ) + &letters_with_fg(set, Color::Red)
             }
         }
     }
@@ -230,6 +230,12 @@ impl WordKnowledge {
                 _ => letter.to_string(),
             })
             .join("")
+    }
+}
+
+impl Default for WordKnowledge {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

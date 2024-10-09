@@ -135,6 +135,12 @@ impl Alphagram {
     }
 }
 
+impl Default for Alphagram {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Debug for Alphagram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fmt_letters(self.slots, f)
@@ -320,6 +326,12 @@ mod tests {
         t("RE", &[(1, l('E')), (1, l('R'))]);
         t("REFER", &[(2, l('E')), (1, l('F')), (2, l('R'))]);
         t("ZZZZZ", &[(5, l('Z'))]);
+    }
+
+    #[test]
+    fn test_default() {
+        let n = Alphagram::default();
+        assert_equal(n, ls(""));
     }
 
     #[test]
