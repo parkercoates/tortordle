@@ -1,29 +1,16 @@
-mod alphagram;
-mod colored_guess;
-mod guess_suggestions;
-mod knowledge;
-mod letter;
-mod letter_set;
-mod possibilities;
-mod slice_subset;
-mod word;
-
-#[cfg(test)]
-mod test_helpers;
-
-use colored_guess::{color_guess, ColoredGuess};
-use guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
-use itertools::Itertools;
-use knowledge::WordKnowledge;
-use letter::letters_with_bg;
-use possibilities::{PossibleAnswer, POSSIBLE_ANSWERS};
-use terminal_size::terminal_size;
-use word::Word;
+use tortordle::colored_guess::{color_guess, ColoredGuess};
+use tortordle::guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
+use tortordle::knowledge::WordKnowledge;
+use tortordle::letter::letters_with_bg;
+use tortordle::possibilities::{PossibleAnswer, POSSIBLE_ANSWERS};
+use tortordle::word::Word;
 
 use clap::{value_parser, Parser};
 use colored::{Color, Colorize};
+use itertools::Itertools;
 use std::fmt::Display;
 use std::{io::Write, process::ExitCode};
+use terminal_size::terminal_size;
 
 const MAX_GUESSES: usize = 6;
 const MAX_WORDS: usize = MAX_GUESSES + 1;
