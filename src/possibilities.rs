@@ -33,3 +33,17 @@ pub const POSSIBLE_ANSWERS: &[PossibleAnswer] = &konst::iter::collect_const!(Pos
     konst::string::split(konst::string::trim(include_str!("WORDLE-ANSWERS.txt")), '\n'),
     map(|line| PossibleAnswer::from_word(Word::expect_from_str(line))),
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use itertools::Itertools;
+
+    #[test]
+    fn test_possible_answers_are_sorted() {
+        // There's always a chance that I add a new word to WORDLE_ANSWERS in the wrong spot.
+        for (a, b) in POSSIBLE_ANSWERS.iter().tuple_windows() {
+            assert!(a.word < b.word)
+        }
+    }
+}
