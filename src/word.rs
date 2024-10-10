@@ -39,7 +39,7 @@ impl Word {
 
 impl IntoIterator for Word {
     type Item = Letter;
-    type IntoIter = core::array::IntoIter<Letter, 5>;
+    type IntoIter = core::array::IntoIter<Letter, { Self::LENGTH }>;
     fn into_iter(self) -> Self::IntoIter {
         self.letters.into_iter()
     }
