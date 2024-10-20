@@ -109,70 +109,73 @@ fn print_remaining_words(
 
 fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, actual_guess: Word) {
     const COLUMN_WIDTH: usize = Word::LENGTH;
+
     // If there are two suggestions or less, they are all equally good. If the
     // last suggestion's rank is 1, they are all tied and therefore equally
     // good. Regardless, let's not bother showing any suggested guesses.
-    let all_equally_good = suggestions.len() <= 2 || suggestions.last().unwrap().rank == 1;
-    if !all_equally_good {
-        print_indent();
+    let [first, _, .., last] = suggestions else {
+        return;
+    };
+    if last.rank == 1 {
+        return;
+    }
+
+    print_indent();
+    for suggestion in suggestions {
+        let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank).normal();
+        if suggestion.word == actual_guess {
+            item = item.on_color(Color::Blue);
+        }
+        print!("{item} ");
+    }
+    println!();
+
+    print_label("Suggested Guesses");
+    for suggestion in suggestions {
+        if suggestion.word == actual_guess {
+            print!(
+                "{:^COLUMN_WIDTH$} ",
+                suggestion.word.to_string().on_color(Color::Blue)
+            );
+        } else {
+            // We can't use COLUMN_WIDTH here because the formatting codes
+            // throw off the justification counts.
+            print!("{} ", knowledge.format_word(suggestion.word));
+        }
+    }
+    println!();
+
+    let print_numbers = |label, getter: fn(&ScoredGuess) -> Points| {
+        let best_value = suggestions
+            .iter()
+            .map(getter)
+            .max()
+            .expect("suggestions not empty");
+        print_label(label);
         for suggestion in suggestions {
-            let mut item = format!("{:^COLUMN_WIDTH$}", suggestion.rank).normal();
+            let value = getter(suggestion).abs();
+            let mut item = format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value).normal();
+            if value == best_value {
+                item = item.color(Color::Green);
+            }
             if suggestion.word == actual_guess {
                 item = item.on_color(Color::Blue);
             }
             print!("{item} ");
         }
         println!();
+    };
 
-        print_label("Suggested Guesses");
-        for suggestion in suggestions {
-            if suggestion.word == actual_guess {
-                print!(
-                    "{:^COLUMN_WIDTH$} ",
-                    suggestion.word.to_string().on_color(Color::Blue)
-                );
-            } else {
-                // We can't use COLUMN_WIDTH here because the formatting codes
-                // throw off the justification counts.
-                print!("{} ", knowledge.format_word(suggestion.word));
-            }
-        }
-        println!();
-
-        let print_numbers = |label, higher_is_better, getter: fn(&ScoredGuess) -> Points| {
-            let best_suggestion = if higher_is_better {
-                suggestions.iter().max_by(|a, b| getter(a).cmp(&getter(b)))
-            } else {
-                suggestions.iter().min_by(|a, b| getter(a).cmp(&getter(b)))
-            };
-            let best_value = getter(best_suggestion.unwrap());
-            print_label(label);
-            for suggestion in suggestions {
-                let value = getter(suggestion);
-                let mut item =
-                    format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value).normal();
-                if value == best_value {
-                    item = item.color(Color::Green);
-                }
-                if suggestion.word == actual_guess {
-                    item = item.on_color(Color::Blue);
-                }
-                print!("{item} ");
-            }
-            println!();
-        };
-
-        // Due to its high cost, avg_score is only calculated when
-        // the possibility space gets relatively small, so let's only print it
-        // if it was computed.
-        if suggestions.first().unwrap().avg_score != Points::zero() {
-            print_numbers("Average Score", false, |s| s.avg_score);
-        }
-        print_numbers("Avg Remaining Words", false, |s| s.remaining_words);
-        print_numbers("Avg Green/Yellow Count", true, |s| s.green_yellow_count);
-        print_numbers("Avg Green Count", true, |s| s.green_count);
-        println!();
+    // Due to its high cost, avg_score is only calculated when
+    // the possibility space gets relatively small, so let's only print it
+    // if it was computed.
+    if first.avg_score != Points::zero() {
+        print_numbers("Average Score", |s| -s.avg_score);
     }
+    print_numbers("Avg Remaining Words", |s| -s.remaining_words);
+    print_numbers("Avg Green/Yellow Count", |s| s.green_yellow_count);
+    print_numbers("Avg Green Count", |s| s.green_count);
+    println!();
 }
 
 fn attempt_optimal_solve(starting_guess: Word, answer: Word) -> Option<Vec<ColoredGuess>> {

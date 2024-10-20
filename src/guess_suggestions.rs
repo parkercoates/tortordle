@@ -25,11 +25,21 @@ impl Points {
     fn from_div(numerator: usize, denominator: usize) -> Self {
         Self::from_f64((numerator as f64) / denominator as f64)
     }
+    pub fn abs(self) -> Self {
+        Self(self.0.abs())
+    }
 }
 
 impl fmt::Display for Points {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         (f64::from(self.0) / Self::DENOMINATOR).fmt(f)
+    }
+}
+
+impl std::ops::Neg for Points {
+    type Output = Points;
+    fn neg(self) -> Self::Output {
+        Self(-self.0)
     }
 }
 
