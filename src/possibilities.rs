@@ -37,13 +37,10 @@ pub const POSSIBLE_ANSWERS: &[PossibleAnswer] = &konst::iter::collect_const!(Pos
 #[cfg(test)]
 mod tests {
     use super::*;
-    use itertools::Itertools;
 
     #[test]
     fn test_possible_answers_are_sorted() {
         // There's always a chance that I add a new word to WORDLE_ANSWERS in the wrong spot.
-        for (a, b) in POSSIBLE_ANSWERS.iter().tuple_windows() {
-            assert!(a.word < b.word)
-        }
+        assert!(POSSIBLE_ANSWERS.is_sorted_by_key(|p| p.word));
     }
 }
