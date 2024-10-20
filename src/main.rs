@@ -44,7 +44,7 @@ fn prompt_for_word(prompt: &str) -> Option<Word> {
         input.clear();
 
         print_label(prompt);
-        std::io::stdout().flush().unwrap();
+        let _ = std::io::stdout().flush();
 
         if std::io::stdin().read_line(&mut input).is_err() {
             println!("Failed to read line!");
@@ -198,16 +198,18 @@ fn attempt_optimal_solve(starting_guess: Word, answer: Word) -> Option<Vec<Color
 
 fn attempt_to_solve_all(starting_guess: Word) {
     let attempt_and_print = |word: &Word| {
-        let guesses = attempt_optimal_solve(starting_guess, *word).unwrap();
-        println_label_value(
-            &word.to_string(),
-            format_args!(
+        print_label(&word.to_string());
+        if let Some(guesses) = attempt_optimal_solve(starting_guess, *word) {
+            println!(
                 "{} {}",
                 guesses.len(),
                 guesses.iter().map(ColoredGuess::formatted).join(" -> ")
-            ),
-        );
-        guesses
+            );
+            Some(guesses.len())
+        } else {
+            println_note("Error");
+            None
+        }
     };
 
     const TOTAL_COUNT: usize = POSSIBLE_ANSWERS.len();
@@ -215,9 +217,10 @@ fn attempt_to_solve_all(starting_guess: Word) {
     let mut failures = Vec::new();
     let mut total_guesses = 0usize;
     for PossibleAnswer { word, .. } in POSSIBLE_ANSWERS {
-        let guesses = attempt_and_print(word);
-        total_guesses += guesses.len();
-        if MAX_GUESSES < guesses.len() {
+        let score = attempt_and_print(word);
+        total_guesses += score.unwrap_or(0);
+        let won = score.is_some_and(|x| x <= MAX_GUESSES);
+        if !won {
             failures.push(*word);
         }
     }
@@ -317,13 +320,16 @@ fn main() -> ExitCode {
     }
 
     let failed = MAX_GUESSES < words.len();
-    let (answer, guesses) = if failed {
-        let mut words = words;
-        (words.pop().unwrap(), words)
+    let answer = *words.last().expect("words not empty");
+
+    let guesses = if failed {
+        let mut guesses = words;
+        guesses.pop();
+        guesses
     } else {
-        (*words.last().unwrap(), words)
+        words
     };
-    let starting_guess = *guesses.first().unwrap();
+    let starting_guess = *guesses.first().expect("guesses guesses empty");
 
     let known_answer = POSSIBLE_ANSWERS.iter().any(|a| a.word == answer);
     if !known_answer {
