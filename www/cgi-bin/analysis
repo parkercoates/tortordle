@@ -46,7 +46,7 @@ echo "Content-Type: text/html
 <body>
     <pre>"
 
-../target/release/tortordle --color --columns=12 --words "${ARGS[@]}" \
+../target/release/tortordle --color --columns=12 --show-game --words "${ARGS[@]}" \
 | aha --no-header --black
 
 echo "

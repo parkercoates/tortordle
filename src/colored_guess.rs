@@ -22,6 +22,15 @@ impl GuessColor {
             Green => Color::Green,
         }
     }
+
+    // The color to be used when drawing a visible block
+    pub const fn block_color(self) -> Color {
+        match self {
+            Black => Color::White,
+            Yellow => Color::Yellow,
+            Green => Color::Green,
+        }
+    }
 }
 
 pub struct ColoredGuess {

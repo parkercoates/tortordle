@@ -1,14 +1,14 @@
 use tortordle::colored_guess::{color_guess, ColoredGuess};
 use tortordle::guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
 use tortordle::knowledge::WordKnowledge;
-use tortordle::letter::letters_with_bg;
+use tortordle::letter::{letters_with_bg, Letter};
 use tortordle::possibilities::{PossibleAnswer, POSSIBLE_ANSWERS};
 use tortordle::word::Word;
 
 use clap::{value_parser, Parser};
 use colored::{Color, Colorize};
 use itertools::Itertools;
-use std::fmt::Display;
+use std::fmt::{Display, Write as _};
 use std::{io::Write, process::ExitCode};
 use terminal_size::terminal_size;
 
@@ -79,6 +79,43 @@ fn prompt_for_words() -> Vec<Word> {
     ];
 
     PROMPTS.into_iter().map_while(prompt_for_word).collect()
+}
+
+pub fn print_letters_as_blocks<I>(colored_letters: I)
+where
+    I: IntoIterator<Item = (Letter, Color)>,
+{
+    let make_line = || {
+        let mut line = String::with_capacity(6 * Word::LENGTH);
+        line.push_str("          ");
+        line
+    };
+
+    let mut top_bottom = make_line();
+    let mut middle = make_line();
+
+    let make_row_of_block = |c, color| format!("  {c}  ").black().on_color(color);
+
+    for (letter, color) in colored_letters {
+        let _ = write!(&mut top_bottom, "{} ", make_row_of_block(' ', color));
+        let _ = write!(&mut middle, "{} ", make_row_of_block(letter.char(), color));
+    }
+
+    println!("{top_bottom}\n{middle}\n{top_bottom}");
+}
+
+fn print_game_as_blocks(guesses: &[Word], answer: Word) {
+    for guess in guesses {
+        let colored = color_guess(*guess, answer);
+        print_letters_as_blocks(colored.iter().map(|(l, s)| (*l, s.block_color())));
+        println!();
+    }
+    if let Some(last) = guesses.last() {
+        if *last != answer {
+            print_letters_as_blocks(answer.iter().map(|l| (*l, Color::Red)));
+            println!();
+        }
+    }
 }
 
 fn print_remaining_words(
@@ -258,6 +295,13 @@ pub struct CmdArgs {
     #[arg(
         long,
         default_value_t = false,
+        help = "Show a summary of the game before the analysis"
+    )]
+    pub show_game: bool,
+
+    #[arg(
+        long,
+        default_value_t = false,
         help = "Show suggestions for the very first guess. Note that this is very slow and the results will be the same every time."
     )]
     pub suggest_first_guess: bool,
@@ -275,7 +319,7 @@ pub struct CmdArgs {
         value_name = "STARTING_WORD",
         value_parser = parse_word_from_arg,
         help = "Attempt to solve every possible Wordle game from the given starting word.",
-        conflicts_with_all = ["words", "columns", "suggest_first_guess"]
+        conflicts_with_all = ["words", "columns", "show_game", "suggest_first_guess"]
     )]
     pub solve_all: Option<Word>,
 
@@ -329,24 +373,29 @@ fn main() -> ExitCode {
     } else {
         words
     };
-    let starting_guess = *guesses.first().expect("guesses guesses empty");
+    let starting_guess = *guesses.first().expect("guesses not empty");
+
+    if cmd_args.show_game {
+        println!("=================== Your Game ====================\n");
+        print_game_as_blocks(&guesses, answer);
+    }
 
     let known_answer = POSSIBLE_ANSWERS.iter().any(|a| a.word == answer);
     if !known_answer {
+        println!("==================== Note ========================\n");
         println_note(&format!(
-            "
-{answer} is not in my list of known potential answers.
+            "{answer} is not in my list of known potential answers.
 
 The Wordle answer list is no longer public and new words are occasionally added
 to it. If {answer} was the answer to a Wordle puzzle, please let Parker know
-and he will add it to my list."
+and he will add it to my list.\n"
         ));
     }
 
     let mut knowledge = WordKnowledge::new();
     let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
 
-    println!("\n================= Guess Analysis =================\n");
+    println!("================= Guess Analysis =================\n");
     for (guess_index, guess) in guesses.into_iter().enumerate() {
         if cmd_args.suggest_first_guess || guess_index != 0 {
             let suggestions = best_guesses(&possibilities, column_count, guess_index, Some(guess));
