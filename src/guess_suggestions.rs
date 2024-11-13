@@ -75,7 +75,7 @@ impl ScoredGuess {
         let mut weighted_count: usize = 0;
         for answer in possibilities {
             let colored_guess = color_guess(self.word, answer.word);
-            for (_, state) in colored_guess.iter() {
+            for (_, state) in colored_guess {
                 match state {
                     GuessColor::Green => {
                         green_count += 1;

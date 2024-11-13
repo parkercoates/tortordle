@@ -29,8 +29,8 @@ pub struct ColoredGuess {
 }
 
 impl ColoredGuess {
-    pub fn iter(&self) -> std::slice::Iter<(Letter, GuessColor)> {
-        self.slots.iter()
+    pub fn iter(&self) -> impl Iterator<Item = &(Letter, GuessColor)> {
+        self.into_iter()
     }
 
     pub fn formatted(&self) -> String {
@@ -50,6 +50,24 @@ impl ColoredGuess {
                 Green => 100,
             })
             .sum()
+    }
+}
+
+impl IntoIterator for ColoredGuess {
+    type Item = (Letter, GuessColor);
+    type IntoIter = std::array::IntoIter<(Letter, GuessColor), 5>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.slots.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ColoredGuess {
+    type Item = &'a (Letter, GuessColor);
+    type IntoIter = std::slice::Iter<'a, (Letter, GuessColor)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.slots.iter()
     }
 }
 
