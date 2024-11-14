@@ -72,28 +72,26 @@ impl ScoredGuess {
 
     fn compute_avg_color_counts(&mut self, possibilities: &[PossibleAnswer]) {
         let mut green_count: usize = 0;
-        let mut green_yellow_count: usize = 0;
-        let mut weighted_count: usize = 0;
+        let mut yellow_count: usize = 0;
         for answer in possibilities {
             let colored_guess = ColoredGuess::new(self.word, answer.word);
             for (_, state) in colored_guess {
-                weighted_count += state.weight();
                 match state {
                     GuessColor::Green => {
                         green_count += 1;
-                        green_yellow_count += 1;
                     }
                     GuessColor::Yellow => {
-                        green_yellow_count += 1;
+                        yellow_count += 1;
                     }
                     GuessColor::Black => {}
                 }
             }
         }
         self.green_count = Points::from_div(green_count, possibilities.len());
-        self.green_yellow_count = Points::from_div(green_yellow_count, possibilities.len());
-        self.score -=
-            (weighted_count as f64 / (10.0 * possibilities.len() as f64)).round() as isize;
+        self.green_yellow_count = Points::from_div(green_count + yellow_count, possibilities.len());
+        let weighted =
+            green_count * GuessColor::Green.weight() + yellow_count * GuessColor::Yellow.weight();
+        self.score -= (weighted as f64 / (10.0 * possibilities.len() as f64)).round() as isize;
     }
 
     fn compute_avg_remaining_words(&mut self, possibilities: &[PossibleAnswer]) {
