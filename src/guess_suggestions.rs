@@ -76,15 +76,14 @@ impl ScoredGuess {
         for answer in possibilities {
             let colored_guess = ColoredGuess::new(self.word, answer.word);
             for (_, state) in colored_guess {
+                weighted_count += state.weight();
                 match state {
                     GuessColor::Green => {
                         green_count += 1;
                         green_yellow_count += 1;
-                        weighted_count += 100;
                     }
                     GuessColor::Yellow => {
                         green_yellow_count += 1;
-                        weighted_count += 74;
                     }
                     GuessColor::Black => {}
                 }

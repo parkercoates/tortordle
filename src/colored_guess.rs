@@ -4,12 +4,20 @@ use crate::word::Word;
 
 use colored::Color;
 
+// The discriminant of the GuessColor enum stores the weighted value we use to rank the strength of
+// different guesses.
+//
+// Obviously greens are better than yellows, exactly how to weight them with respect to each other
+// gets nuanced. Are three yellows better than two greens? After polling a few players, we found
+// that weighting a yellow at 74% the value of a green seemed to roughly match the perceived value
+// of different combinations. (74% was chosen to avoid a tie between 4 yellows and 3 greens.)
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum GuessColor {
-    Black,
-    Yellow,
-    Green,
+    Black = 0,
+    Yellow = 74,
+    Green = 100,
 }
 
 use GuessColor::*;
@@ -30,6 +38,10 @@ impl GuessColor {
             Yellow => Color::Yellow,
             Green => Color::Green,
         }
+    }
+
+    pub const fn weight(self) -> usize {
+        self as usize
     }
 }
 
@@ -73,13 +85,7 @@ impl ColoredGuess {
     }
 
     pub fn weighted_green_yellow_count(&self) -> usize {
-        self.iter()
-            .map(|(_, state)| match state {
-                Black => 0,
-                Yellow => 74,
-                Green => 100,
-            })
-            .sum()
+        self.iter().map(|(_, state)| state.weight()).sum()
     }
 }
 
