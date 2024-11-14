@@ -36,6 +36,7 @@ impl<'a, T> SliceSubset<'a, T> {
         self.bit_mask.count_ones() as usize
     }
 
+    #[must_use]
     pub fn retained<F>(&self, mut f: F) -> Self
     where
         F: FnMut(&T) -> bool,

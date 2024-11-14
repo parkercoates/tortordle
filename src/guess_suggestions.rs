@@ -25,6 +25,7 @@ impl Points {
     fn from_div(numerator: usize, denominator: usize) -> Self {
         Self::from_f64((numerator as f64) / denominator as f64)
     }
+    #[must_use]
     pub fn abs(self) -> Self {
         Self(self.0.abs())
     }

@@ -99,6 +99,7 @@ impl Alphagram {
 
     // Merges the two Alphagrams, keeping the higher count for every letter encountered. Since
     // Alphagram has a fixed capacity, the result is undefined if the merged capacity exceeds it.
+    #[must_use]
     pub fn merged(self, other: Self) -> Self {
         let mut i = 0;
         let mut j = 0;
