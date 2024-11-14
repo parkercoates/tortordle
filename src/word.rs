@@ -35,6 +35,10 @@ impl Word {
     pub fn iter(&self) -> impl Iterator<Item = &Letter> {
         self.into_iter()
     }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Letter> {
+        self.into_iter()
+    }
 }
 
 impl IntoIterator for Word {
@@ -50,6 +54,14 @@ impl<'a> IntoIterator for &'a Word {
     type IntoIter = core::slice::Iter<'a, Letter>;
     fn into_iter(self) -> Self::IntoIter {
         self.letters.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Word {
+    type Item = &'a mut Letter;
+    type IntoIter = core::slice::IterMut<'a, Letter>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.letters.iter_mut()
     }
 }
 
