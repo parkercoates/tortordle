@@ -1,5 +1,5 @@
 use crate::alphagram::Alphagram;
-use crate::colored_guess::{color_guess, ColoredGuess};
+use crate::colored_guess::ColoredGuess;
 use crate::letter::Letter;
 use crate::letter_set::LetterSet;
 use crate::possibilities::PossibleAnswer;
@@ -66,7 +66,7 @@ pub fn a(s: &str) -> Alphagram {
 }
 
 pub fn g(word: &str, answer: &str) -> ColoredGuess {
-    color_guess(w(word), w(answer))
+    ColoredGuess::new(w(word), w(answer))
 }
 
 pub const fn p(s: &str) -> PossibleAnswer {

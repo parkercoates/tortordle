@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::cmp::{min, Ordering};
 use std::fmt;
 
-use crate::colored_guess::{color_guess, GuessColor};
+use crate::colored_guess::{ColoredGuess, GuessColor};
 use crate::knowledge::WordKnowledge;
 use crate::possibilities::PossibleAnswer;
 use crate::slice_subset::SliceSubset;
@@ -74,7 +74,7 @@ impl ScoredGuess {
         let mut green_yellow_count: usize = 0;
         let mut weighted_count: usize = 0;
         for answer in possibilities {
-            let colored_guess = color_guess(self.word, answer.word);
+            let colored_guess = ColoredGuess::new(self.word, answer.word);
             for (_, state) in colored_guess {
                 match state {
                     GuessColor::Green => {
@@ -124,7 +124,9 @@ impl ScoredGuess {
             let score = |p: &PossibleAnswer| {
                 possibilities
                     .iter()
-                    .map(|answer| color_guess(p.word, answer.word).weighted_green_yellow_count())
+                    .map(|answer| {
+                        ColoredGuess::new(p.word, answer.word).weighted_green_yellow_count()
+                    })
                     .sum()
             };
 

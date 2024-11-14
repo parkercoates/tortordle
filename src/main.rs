@@ -1,4 +1,4 @@
-use tortordle::colored_guess::{color_guess, ColoredGuess};
+use tortordle::colored_guess::ColoredGuess;
 use tortordle::guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
 use tortordle::knowledge::WordKnowledge;
 use tortordle::letter::{letters_with_bg, Letter};
@@ -106,7 +106,7 @@ where
 
 fn print_game_as_blocks(guesses: &[Word], answer: Word) {
     for guess in guesses {
-        let colored = color_guess(*guess, answer);
+        let colored = ColoredGuess::new(*guess, answer);
         print_letters_as_blocks(colored.iter().map(|(l, s)| (*l, s.block_color())));
         println!();
     }
@@ -221,7 +221,7 @@ fn attempt_optimal_solve(starting_guess: Word, answer: Word) -> Option<Vec<Color
     let mut possibilities = Vec::from(POSSIBLE_ANSWERS);
     let mut result = Vec::<ColoredGuess>::new();
     loop {
-        let colored = color_guess(guess, answer);
+        let colored = ColoredGuess::new(guess, answer);
         knowledge.add_guess(&colored);
         result.push(colored);
         if guess == answer {
@@ -402,7 +402,7 @@ and he will add it to my list.\n"
             print_suggestions(&suggestions, &knowledge, guess);
         }
 
-        let colored_guess = color_guess(guess, answer);
+        let colored_guess = ColoredGuess::new(guess, answer);
         println_label_value(
             &format!("Guess #{}", guess_index + 1),
             colored_guess.formatted(),

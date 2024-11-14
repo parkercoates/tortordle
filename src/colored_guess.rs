@@ -38,6 +38,27 @@ pub struct ColoredGuess {
 }
 
 impl ColoredGuess {
+    pub fn new(guess: Word, answer: Word) -> ColoredGuess {
+        let mut slots = [(Letter::NO_LETTER, Black); Word::LENGTH];
+        let mut yellows = Alphagram::new();
+        for (guess_letter, answer_letter, (letter, state)) in
+            itertools::izip!(guess, answer, &mut slots)
+        {
+            *letter = guess_letter;
+            if guess_letter == answer_letter {
+                *state = Green;
+            } else {
+                yellows.insert(answer_letter);
+            }
+        }
+        for (letter, state) in &mut slots {
+            if *state == Black && yellows.remove(*letter) {
+                *state = Yellow;
+            }
+        }
+        ColoredGuess { slots }
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &(Letter, GuessColor)> {
         self.into_iter()
     }
@@ -78,25 +99,4 @@ impl<'a> IntoIterator for &'a ColoredGuess {
     fn into_iter(self) -> Self::IntoIter {
         self.slots.iter()
     }
-}
-
-pub fn color_guess(guess: Word, answer: Word) -> ColoredGuess {
-    let mut slots = [(Letter::NO_LETTER, Black); Word::LENGTH];
-    let mut yellows = Alphagram::new();
-    for (guess_letter, answer_letter, (letter, state)) in
-        itertools::izip!(guess, answer, &mut slots)
-    {
-        *letter = guess_letter;
-        if guess_letter == answer_letter {
-            *state = Green;
-        } else {
-            yellows.insert(answer_letter);
-        }
-    }
-    for (letter, state) in &mut slots {
-        if *state == Black && yellows.remove(*letter) {
-            *state = Yellow;
-        }
-    }
-    ColoredGuess { slots }
 }
