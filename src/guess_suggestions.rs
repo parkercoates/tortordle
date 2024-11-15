@@ -4,11 +4,22 @@ use rayon::prelude::*;
 use std::cmp::{min, Ordering};
 use std::fmt;
 
-use crate::colored_guess::{ColoredGuess, GuessColor};
+use crate::colored_guess::ColorCounts;
 use crate::knowledge::WordKnowledge;
 use crate::possibilities::PossibleAnswer;
 use crate::slice_subset::SliceSubset;
 use crate::word::Word;
+
+fn color_counts<'a, I: IntoIterator<Item = &'a PossibleAnswer>>(
+    word: Word,
+    possibilities: I,
+) -> ColorCounts {
+    let mut totals = ColorCounts::default();
+    for possibility in possibilities {
+        totals += ColorCounts::from_guess(word, possibility.word);
+    }
+    totals
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Points(i32);
@@ -71,27 +82,12 @@ impl ScoredGuess {
     }
 
     fn compute_avg_color_counts(&mut self, possibilities: &[PossibleAnswer]) {
-        let mut green_count: usize = 0;
-        let mut yellow_count: usize = 0;
-        for answer in possibilities {
-            let colored_guess = ColoredGuess::new(self.word, answer.word);
-            for (_, state) in colored_guess {
-                match state {
-                    GuessColor::Green => {
-                        green_count += 1;
-                    }
-                    GuessColor::Yellow => {
-                        yellow_count += 1;
-                    }
-                    GuessColor::Black => {}
-                }
-            }
-        }
-        self.green_count = Points::from_div(green_count, possibilities.len());
-        self.green_yellow_count = Points::from_div(green_count + yellow_count, possibilities.len());
-        let weighted =
-            green_count * GuessColor::Green.weight() + yellow_count * GuessColor::Yellow.weight();
-        self.score -= (weighted as f64 / (10.0 * possibilities.len() as f64)).round() as isize;
+        let counts = color_counts(self.word, possibilities);
+        self.green_count = Points::from_div(counts.green_count(), possibilities.len());
+        self.green_yellow_count =
+            Points::from_div(counts.green_yellow_count(), possibilities.len());
+        self.score -=
+            (counts.weighted_count() as f64 / (10.0 * possibilities.len() as f64)).round() as isize;
     }
 
     fn compute_avg_remaining_words(&mut self, possibilities: &[PossibleAnswer]) {
@@ -119,14 +115,7 @@ impl ScoredGuess {
         fn best_guesses_by_color_counts(
             possibilities: &SliceSubset<PossibleAnswer>,
         ) -> ArrayVec<(Word, usize), MAX_GUESSES_TO_TRY> {
-            let score = |p: &PossibleAnswer| {
-                possibilities
-                    .iter()
-                    .map(|answer| {
-                        ColoredGuess::new(p.word, answer.word).weighted_green_yellow_count()
-                    })
-                    .sum()
-            };
+            let score = |p: &PossibleAnswer| color_counts(p.word, possibilities).weighted_count();
 
             // We use an ArrayVec to avoid the need to allocate at all
             let mut best_guesses = ArrayVec::<(Word, usize), MAX_GUESSES_TO_TRY>::new();

@@ -3,6 +3,7 @@ use crate::letter::{letter_with_bg, Letter};
 use crate::word::Word;
 
 use colored::Color;
+use itertools::izip;
 
 // The discriminant of the GuessColor enum stores the weighted value we use to rank the strength of
 // different guesses.
@@ -45,6 +46,67 @@ impl GuessColor {
     }
 }
 
+#[derive(Default)]
+pub struct ColorCounts {
+    greens: usize,
+    yellows: usize,
+}
+
+impl ColorCounts {
+    pub fn from_guess(guess: Word, answer: Word) -> Self {
+        // We are going to mutate the contents of our arguments in ways that break Word invariants,
+        // so let's just steal their guts and mutate those arrays directly instead.
+        let mut guess = guess.letters;
+        let mut answer = answer.letters;
+
+        // On the first pass we count up green matches. When a green match is found, we remove those
+        // letters from both guess and answer to get them out of the way when we later count the
+        // yellows.
+        let mut greens = 0;
+        for (answer_letter, guess_letter) in izip!(&mut answer, &mut guess) {
+            if *guess_letter == *answer_letter {
+                greens += 1;
+                *guess_letter = Letter::NO_LETTER;
+                *answer_letter = Letter::NO_LETTER;
+            }
+        }
+
+        // We now loop through the unmatched letters in answer and search for them in the unmatched
+        // letters still in guess. Note that if found, we have to remove the letters from guess to
+        // properly handle repeated letters.
+        let find_then_remove = |letter: &Letter| {
+            letter.is_valid()
+                && guess
+                    .iter_mut()
+                    .find(|l| **l == *letter)
+                    .map(|l| *l = Letter::NO_LETTER)
+                    .is_some()
+        };
+        let yellows = answer.into_iter().filter(find_then_remove).count();
+        Self { greens, yellows }
+    }
+
+    pub fn green_count(&self) -> usize {
+        self.greens
+    }
+    pub fn yellow_count(&self) -> usize {
+        self.yellows
+    }
+    pub fn green_yellow_count(&self) -> usize {
+        self.greens + self.yellows
+    }
+    pub fn weighted_count(&self) -> usize {
+        self.greens * Green.weight() + self.yellows * Yellow.weight()
+    }
+}
+
+impl std::ops::AddAssign for ColorCounts {
+    fn add_assign(&mut self, rhs: Self) {
+        self.greens += rhs.greens;
+        self.yellows += rhs.yellows;
+    }
+}
+
 pub struct ColoredGuess {
     slots: [(Letter, GuessColor); Word::LENGTH],
 }
@@ -82,10 +144,6 @@ impl ColoredGuess {
                 _ => letter_with_bg(*letter, state.color()),
             })
             .collect()
-    }
-
-    pub fn weighted_green_yellow_count(&self) -> usize {
-        self.iter().map(|(_, state)| state.weight()).sum()
     }
 }
 
