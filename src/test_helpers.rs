@@ -1,5 +1,5 @@
 use crate::alphagram::Alphagram;
-use crate::colored_guess::ColoredGuess;
+use crate::guess_coloring::ColoredGuess;
 use crate::letter::Letter;
 use crate::letter_set::LetterSet;
 use crate::possibilities::PossibleAnswer;

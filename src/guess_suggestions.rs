@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::cmp::{min, Ordering};
 use std::fmt;
 
-use crate::colored_guess::ColorCounts;
+use crate::guess_coloring::ColorCounts;
 use crate::knowledge::WordKnowledge;
 use crate::possibilities::PossibleAnswer;
 use crate::slice_subset::SliceSubset;

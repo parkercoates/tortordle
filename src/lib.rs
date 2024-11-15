@@ -1,5 +1,5 @@
 pub mod alphagram;
-pub mod colored_guess;
+pub mod guess_coloring;
 pub mod guess_suggestions;
 pub mod knowledge;
 pub mod letter;

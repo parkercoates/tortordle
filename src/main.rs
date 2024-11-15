@@ -1,4 +1,4 @@
-use tortordle::colored_guess::ColoredGuess;
+use tortordle::guess_coloring::ColoredGuess;
 use tortordle::guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
 use tortordle::knowledge::WordKnowledge;
 use tortordle::letter::{letters_with_bg, Letter};
