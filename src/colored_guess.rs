@@ -1,4 +1,3 @@
-use crate::alphagram::Alphagram;
 use crate::letter::{letter_with_bg, Letter};
 use crate::word::Word;
 
@@ -52,6 +51,15 @@ pub struct ColorCounts {
     yellows: usize,
 }
 
+fn find_then_remove(letters: &mut [Letter; Word::LENGTH], letter: Letter) -> bool {
+    letter.is_valid()
+        && letters
+            .iter_mut()
+            .find(|l| **l == letter)
+            .map(|l| *l = Letter::NO_LETTER)
+            .is_some()
+}
+
 impl ColorCounts {
     pub fn from_guess(guess: Word, answer: Word) -> Self {
         // We are going to mutate the contents of our arguments in ways that break Word invariants,
@@ -74,15 +82,11 @@ impl ColorCounts {
         // We now loop through the unmatched letters in answer and search for them in the unmatched
         // letters still in guess. Note that if found, we have to remove the letters from guess to
         // properly handle repeated letters.
-        let find_then_remove = |letter: &Letter| {
-            letter.is_valid()
-                && guess
-                    .iter_mut()
-                    .find(|l| **l == *letter)
-                    .map(|l| *l = Letter::NO_LETTER)
-                    .is_some()
-        };
-        let yellows = answer.into_iter().filter(find_then_remove).count();
+        let yellows = answer
+            .into_iter()
+            .filter(|l| find_then_remove(&mut guess, *l))
+            .count();
+
         Self { greens, yellows }
     }
 
@@ -113,20 +117,28 @@ pub struct ColoredGuess {
 
 impl ColoredGuess {
     pub fn new(guess: Word, answer: Word) -> ColoredGuess {
+        // We are going to mutate the contents of answer in ways that break Word invariants, so
+        // let's just steal its guts and mutate the array directly instead.
+        let mut answer = answer.letters;
+
+        // Guess colouring is a two pass operation. On the first pass we identify green matches.
+        // When a green match is found, we remove those letters from both answer to get them out of
+        // the way when we later count the yellows.
         let mut slots = [(Letter::NO_LETTER, Black); Word::LENGTH];
-        let mut yellows = Alphagram::new();
-        for (guess_letter, answer_letter, (letter, state)) in
-            itertools::izip!(guess, answer, &mut slots)
+        for (guess_letter, answer_letter, (letter, state)) in izip!(guess, &mut answer, &mut slots)
         {
             *letter = guess_letter;
-            if guess_letter == answer_letter {
+            if guess_letter == *answer_letter {
                 *state = Green;
-            } else {
-                yellows.insert(answer_letter);
+                *answer_letter = Letter::NO_LETTER;
             }
         }
+
+        // We now loop through the slots that are still black and search for those letters in the
+        // unmatched letters still in answer. When we find a letter, we have to remove it from
+        // answer to properly handle repeated letters.
         for (letter, state) in &mut slots {
-            if *state == Black && yellows.remove(*letter) {
+            if *state == Black && find_then_remove(&mut answer, *letter) {
                 *state = Yellow;
             }
         }
