@@ -97,7 +97,10 @@ where
     let make_row_of_block = |c, color| format!("  {c}  ").black().on_color(color);
 
     for (letter, color) in colored_letters {
-        let _ = write!(&mut top_bottom, "{} ", make_row_of_block(' ', color));
+        // Work around web browsers on iOS that do weird things to spans containing only spaces, by
+        // using a NBSP in the middle of the space-only spans.
+        const NBSP: char = '\u{A0}';
+        let _ = write!(&mut top_bottom, "{} ", make_row_of_block(NBSP, color));
         let _ = write!(&mut middle, "{} ", make_row_of_block(letter.char(), color));
     }
 

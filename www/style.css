@@ -5,6 +5,10 @@ body {
     white-space: pre;
     max-width: max-content;
     margin: auto;
+
+    /* Slightly reduce line height to work around small gaps being shown between the background
+     * colours of consecutive lines on iOS. */
+    line-height: 1.23;
 }
 
 h1, h2 {
