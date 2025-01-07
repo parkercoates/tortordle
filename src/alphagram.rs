@@ -180,25 +180,23 @@ impl Iterator for Iter {
 // An optimal sorting network for 5 elements.
 // Taken from https://bertdobbelaere.github.io/sorting_networks.html#N5L9D5
 const fn sorted5(mut arr: [Letter; 5]) -> [Letter; 5] {
-    macro_rules! compare_exchange {
-        ($arr:ident, $i:literal, $j:literal) => {
-            if $arr[$j].index() < $arr[$i].index() {
-                let temp = $arr[$i];
-                $arr[$i] = $arr[$j];
-                $arr[$j] = temp;
-            }
-        };
+    const fn compare_exchange(arr: &mut [Letter; 5], i: usize, j: usize) {
+        if arr[j].index() < arr[i].index() {
+            let temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
     }
 
-    compare_exchange!(arr, 0, 3);
-    compare_exchange!(arr, 1, 4);
-    compare_exchange!(arr, 0, 2);
-    compare_exchange!(arr, 1, 3);
-    compare_exchange!(arr, 0, 1);
-    compare_exchange!(arr, 2, 4);
-    compare_exchange!(arr, 1, 2);
-    compare_exchange!(arr, 3, 4);
-    compare_exchange!(arr, 2, 3);
+    compare_exchange(&mut arr, 0, 3);
+    compare_exchange(&mut arr, 1, 4);
+    compare_exchange(&mut arr, 0, 2);
+    compare_exchange(&mut arr, 1, 3);
+    compare_exchange(&mut arr, 0, 1);
+    compare_exchange(&mut arr, 2, 4);
+    compare_exchange(&mut arr, 1, 2);
+    compare_exchange(&mut arr, 3, 4);
+    compare_exchange(&mut arr, 2, 3);
     arr
 }
 
