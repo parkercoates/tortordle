@@ -369,6 +369,11 @@ fn main() -> ExitCode {
     let failed = MAX_GUESSES < words.len();
     let answer = *words.last().expect("words not empty");
 
+    if words[..words.len() - 1].contains(&answer) {
+        println!("The answer {answer} cannot also appear as a guess.");
+        return ExitCode::FAILURE;
+    }
+
     let guesses = if failed {
         let mut guesses = words;
         guesses.pop();
@@ -376,6 +381,7 @@ fn main() -> ExitCode {
     } else {
         words
     };
+
     let starting_guess = *guesses.first().expect("guesses not empty");
 
     if cmd_args.show_game {
