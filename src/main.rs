@@ -94,14 +94,16 @@ where
     let mut top_bottom = make_line();
     let mut middle = make_line();
 
-    let make_row_of_block = |c, color| format!("  {c}  ").black().on_color(color);
+    fn append_row_of_block(s: &mut String, c: char, color: Color) {
+        let _ = write!(s, "{} ", format!("  {c}  ").black().on_color(color));
+    }
 
     for (letter, color) in colored_letters {
         // Work around web browsers on iOS that do weird things to spans containing only spaces, by
         // using a NBSP in the middle of the space-only spans.
         const NBSP: char = '\u{A0}';
-        let _ = write!(&mut top_bottom, "{} ", make_row_of_block(NBSP, color));
-        let _ = write!(&mut middle, "{} ", make_row_of_block(letter.char(), color));
+        append_row_of_block(&mut top_bottom, NBSP, color);
+        append_row_of_block(&mut middle, letter.char(), color);
     }
 
     println!("{top_bottom}\n{middle}\n{top_bottom}");
