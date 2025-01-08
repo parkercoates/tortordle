@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 arrayvec = "0.7"
 bitset-core = "0.1"
-colored = "2.1"
+colored = "3.0"
 clap = { version = "4.5", features = ["derive", "wrap_help"] }
 konst = "0.3"
-itertools = "0.13"
-partial_sort = "0.2"
+itertools = "0.14"
+partial_sort = "1.0"
 rayon = "1.10"
 terminal_size = "0.4"
