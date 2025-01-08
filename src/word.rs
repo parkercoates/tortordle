@@ -27,9 +27,11 @@ impl Word {
         Some(Self { letters })
     }
 
-    // Panics if conversion fails. Use only in const evaluations
+    /// # Panics
+    ///
+    /// Panics if conversion fails. Use only in const evaluations.
     pub const fn expect_from_str(s: &str) -> Word {
-        konst::option::unwrap!(Self::from_str(s))
+        Self::from_str(s).unwrap()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Letter> {
