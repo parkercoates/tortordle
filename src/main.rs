@@ -195,8 +195,9 @@ fn print_suggestions(suggestions: &[ScoredGuess], knowledge: &WordKnowledge, act
             .expect("suggestions not empty");
         print_label(label);
         for suggestion in suggestions {
-            let value = getter(suggestion).abs();
-            let mut item = format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value).normal();
+            let value = getter(suggestion);
+            let mut item =
+                format!("{:^COLUMN_WIDTH$.*}", Points::DECIMAL_PLACES, value.abs()).normal();
             if value == best_value {
                 item = item.color(Color::Green);
             }
