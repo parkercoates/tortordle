@@ -179,25 +179,27 @@ impl Iterator for Iter {
 
 // An optimal sorting network for 5 elements.
 // Taken from https://bertdobbelaere.github.io/sorting_networks.html#N5L9D5
-const fn sorted5(mut arr: [Letter; 5]) -> [Letter; 5] {
-    const fn compare_exchange(arr: &mut [Letter; 5], i: usize, j: usize) {
-        if arr[j].index() < arr[i].index() {
-            let temp = arr[i];
-            arr[i] = arr[j];
-            arr[j] = temp;
+const fn sorted5(mut letters: [Letter; 5]) -> [Letter; 5] {
+    let a = &mut letters;
+
+    // Const closures when?
+    const fn compare_exchange(a: &mut [Letter; 5], i: usize, j: usize) {
+        if a[j].index() < a[i].index() {
+            a.swap(j, i);
         }
     }
 
-    compare_exchange(&mut arr, 0, 3);
-    compare_exchange(&mut arr, 1, 4);
-    compare_exchange(&mut arr, 0, 2);
-    compare_exchange(&mut arr, 1, 3);
-    compare_exchange(&mut arr, 0, 1);
-    compare_exchange(&mut arr, 2, 4);
-    compare_exchange(&mut arr, 1, 2);
-    compare_exchange(&mut arr, 3, 4);
-    compare_exchange(&mut arr, 2, 3);
-    arr
+    compare_exchange(a, 0, 3);
+    compare_exchange(a, 1, 4);
+    compare_exchange(a, 0, 2);
+    compare_exchange(a, 1, 3);
+    compare_exchange(a, 0, 1);
+    compare_exchange(a, 2, 4);
+    compare_exchange(a, 1, 2);
+    compare_exchange(a, 3, 4);
+    compare_exchange(a, 2, 3);
+
+    letters
 }
 
 #[cfg(test)]
