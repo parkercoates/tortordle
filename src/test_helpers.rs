@@ -21,7 +21,7 @@ pub const fn l(c: char) -> Letter {
     Letter::from_char(c)
 }
 
-pub fn ls(s: &str) -> StrLetters {
+pub fn ls(s: &str) -> StrLetters<'_> {
     StrLetters(s.chars())
 }
 

@@ -67,7 +67,7 @@ impl<'a, T> SliceSubset<'a, T> {
         }
     }
 
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             slice_subset: self,
             bits_to_visit: self.bit_mask,
