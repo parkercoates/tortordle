@@ -123,7 +123,7 @@ impl ScoredGuess {
 
             // First fill the ArrayVec until full, returning early if we don't have
             // enough guesses.
-            for _ in [..MAX_GUESSES_TO_TRY] {
+            for _ in 0..MAX_GUESSES_TO_TRY {
                 if let Some(p) = it.next() {
                     best_guesses.push((p.word, score(p)));
                 } else {
