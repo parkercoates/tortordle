@@ -1,13 +1,13 @@
 use crate::alphagram::Alphagram;
 use crate::guess_coloring::{ColoredGuess, GuessColor};
-use crate::letter::{letter_with_fg, letters_with_fg, Letter};
+use crate::letter::{Letter, letter_with_fg, letters_with_fg};
 use crate::letter_set::LetterSet;
 use crate::possibilities::PossibleAnswer;
 use crate::word::Word;
 
 use arrayvec::ArrayVec;
 use colored::Color;
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
 
 #[derive(Eq, PartialEq, Debug)]
 enum LetterKnowledge {

@@ -1,4 +1,4 @@
-use crate::letter::{letter_with_bg, Letter};
+use crate::letter::{Letter, letter_with_bg};
 use crate::word::Word;
 
 use colored::Color;

@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 use partial_sort::PartialSort;
 use rayon::prelude::*;
-use std::cmp::{min, Ordering};
+use std::cmp::{Ordering, min};
 use std::fmt;
 
 use crate::guess_coloring::ColorCounts;

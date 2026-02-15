@@ -1,11 +1,11 @@
 use tortordle::guess_coloring::ColoredGuess;
-use tortordle::guess_suggestions::{best_guesses, top_guess, Points, ScoredGuess};
+use tortordle::guess_suggestions::{Points, ScoredGuess, best_guesses, top_guess};
 use tortordle::knowledge::WordKnowledge;
-use tortordle::letter::{letters_with_bg, Letter};
-use tortordle::possibilities::{PossibleAnswer, POSSIBLE_ANSWERS};
+use tortordle::letter::{Letter, letters_with_bg};
+use tortordle::possibilities::{POSSIBLE_ANSWERS, PossibleAnswer};
 use tortordle::word::Word;
 
-use clap::{value_parser, Parser};
+use clap::{Parser, value_parser};
 use colored::{Color, Colorize};
 use itertools::Itertools;
 use std::fmt::{Display, Write as _};

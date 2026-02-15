@@ -1,4 +1,4 @@
-use crate::letter::{fmt_letters, Letter};
+use crate::letter::{Letter, fmt_letters};
 
 use std::fmt::{Debug, Display};
 
