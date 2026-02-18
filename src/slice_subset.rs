@@ -103,6 +103,17 @@ impl<'a, T> Iterator for Iter<'a, T> {
             None
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let l = self.len();
+        (l, Some(l))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for Iter<'a, T> {
+    fn len(&self) -> usize {
+        self.bits_to_visit.count_ones() as usize
+    }
 }
 
 #[cfg(test)]
