@@ -115,11 +115,11 @@ fn print_game_as_blocks(guesses: &[Word], answer: Word) {
         print_letters_as_blocks(colored.iter().map(|(l, s)| (*l, s.block_color())));
         println!();
     }
-    if let Some(last) = guesses.last() {
-        if *last != answer {
-            print_letters_as_blocks(answer.iter().map(|l| (*l, Color::Red)));
-            println!();
-        }
+    if let Some(last) = guesses.last()
+        && *last != answer
+    {
+        print_letters_as_blocks(answer.iter().map(|l| (*l, Color::Red)));
+        println!();
     }
 }
 
