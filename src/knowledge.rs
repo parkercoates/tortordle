@@ -162,7 +162,7 @@ impl WordKnowledge {
         // and remove it from self.yellows.
         //
         // Note that this has to support the extremely rare case of having two yellows of the same
-        // letter and only two slots they could match. (Something I've never seen happen in a real
+        // letter and only two slots they could match. (Something I've now seen happen in a real
         // game.)
         const MAX_POTENTIAL_SLOTS: usize = Word::LENGTH - 1;
         for (count, letter) in self.yellows.counts() {
