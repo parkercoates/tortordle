@@ -1,4 +1,5 @@
 use arrayvec::ArrayVec;
+use itertools::Itertools;
 use partial_sort::PartialSort;
 use rayon::prelude::*;
 use std::cmp::{Ordering, min};
@@ -114,38 +115,54 @@ impl ScoredGuess {
 
         fn best_guesses_by_color_counts(
             possibilities: &SliceSubset<PossibleAnswer>,
-        ) -> ArrayVec<(Word, usize), MAX_GUESSES_TO_TRY> {
-            let score = |p: &PossibleAnswer| color_counts(p.word, possibilities).weighted_count();
+        ) -> ArrayVec<Word, MAX_GUESSES_TO_TRY> {
+            // Note that we are not sorting the output at all; all of the results will be used and
+            // averaged together, so we don't care about the order.
 
-            // We use an ArrayVec to avoid the need to allocate at all
-            let mut best_guesses = ArrayVec::<(Word, usize), MAX_GUESSES_TO_TRY>::new();
-            let mut it = possibilities.iter();
+            // We use an ArrayVec to avoid the need to allocate at all.
+            let mut words = ArrayVec::<Word, MAX_GUESSES_TO_TRY>::new();
 
-            // First fill the ArrayVec until full, returning early if we don't have
-            // enough guesses.
+            let mut it = possibilities.iter().map(|p| p.word);
+
+            // If we don't have an excess of words, we don't need to score and rank them at all. We
+            // can just copy them all into the ArrayVec and return.
+            if it.len() <= MAX_GUESSES_TO_TRY {
+                words.extend(it);
+                return words;
+            }
+
+            // Otherwise, fill the ArrayVec until full.
             for _ in 0..MAX_GUESSES_TO_TRY {
-                if let Some(p) = it.next() {
-                    best_guesses.push((p.word, score(p)));
-                } else {
-                    return best_guesses;
+                if let Some(w) = it.next() {
+                    words.push(w);
                 }
             }
 
-            // Then replace old values with better ones as we find them.
-            //
-            // Note that we are not sorting the output at all; all of the results
-            // will be used and averaged, so we don't care about the order. Just
-            // that we get the best MAX_GUESSES_TO_TRY.
-            for p in it {
-                let score = score(p);
-                for best in &mut best_guesses {
-                    if best.1 < score {
-                        *best = (p.word, score);
-                        break;
-                    }
+            // Build a parallel array of scores.
+            let score = |w: Word| color_counts(w, possibilities).weighted_count();
+            let mut scores = words
+                .as_mut_array::<MAX_GUESSES_TO_TRY>()
+                .expect("Words has to be MAX_GUESSES_TO_TRY in size.")
+                .map(score);
+
+            let find_worst_score = |scores: &[usize; MAX_GUESSES_TO_TRY]| {
+                let index = scores.iter().position_min().unwrap();
+                (index, scores[index])
+            };
+
+            // Loop through the remaining possibilities, scoring them. If a new score is better
+            // than our worst, replace our worst with it and calculate the new worst.
+            let (mut worst_index, mut worst_score) = find_worst_score(&scores);
+            for w in it {
+                let s = score(w);
+                if s > worst_score {
+                    words[worst_index] = w;
+                    scores[worst_index] = s;
+                    (worst_index, worst_score) = find_worst_score(&scores);
                 }
             }
-            best_guesses
+
+            words
         }
 
         fn avg_remaining_guesses(guess: Word, possibilities: &SliceSubset<PossibleAnswer>) -> f64 {
@@ -158,12 +175,10 @@ impl ScoredGuess {
                         total_guesses += 1.0;
                     } else {
                         let next_guesses = best_guesses_by_color_counts(&new_possibilities);
-                        let total_next_guesses: f64 = next_guesses
+                        let total_next_guesses = next_guesses
                             .iter()
-                            .map(|(next_guess, _)| {
-                                avg_remaining_guesses(*next_guess, &new_possibilities)
-                            })
-                            .sum();
+                            .map(|w| avg_remaining_guesses(*w, &new_possibilities))
+                            .sum::<f64>();
                         total_guesses += total_next_guesses / next_guesses.len() as f64;
                     }
                 }
